@@ -1,0 +1,18 @@
+[
+  {
+    "id": "mmlu_physics_001",
+    "question": "An electron moves perpendicular to a uniform magnetic field B = 0.5 T with velocity v = 2e6 m/s. Calculate the magnetic Lorentz force magnitude.",
+    "options": ["1.6e-13 N", "3.2e-13 N", "8.0e-14 N", "1.6e-19 N"],
+    "answer": "1.6e-13 N",
+    "domain": "Physics",
+    "required_reasoning": "Lorentz Force F = q * v * B"
+  },
+  {
+    "id": "mmlu_biology_002",
+    "question": "Which biological feedback motif maintains homeostasis against exponential environmental perturbations?",
+    "options": ["Positive feedforward loop", "Incoherent feedforward loop", "Negative feedback loop with delay dampening", "Transcription cascades"],
+    "answer": "Negative feedback loop with delay dampening",
+    "domain": "Biology",
+    "required_reasoning": "Homeostatic stability requires dampening negative feedback"
+  }
+]

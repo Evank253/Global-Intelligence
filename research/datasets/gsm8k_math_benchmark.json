@@ -1,0 +1,14 @@
+[
+  {
+    "id": "gsm8k_001",
+    "question": "A distributed solar cluster generates 450 kWh of energy per day. If 20% is lost during battery storage transfer and the remainder is shared equally among 6 sub-grids, how many kWh does each sub-grid receive daily?",
+    "answer": "60 kWh",
+    "step_by_step_proof": "Loss = 450 * 0.20 = 90 kWh. Remaining = 450 - 90 = 360 kWh. Per sub-grid = 360 / 6 = 60 kWh."
+  },
+  {
+    "id": "gsm8k_002",
+    "question": "A quantum compute fabric allocates 64 NVIDIA H100 GPUs across 8 nodes. If 2 nodes are reserved for failover fault tolerance and the remaining nodes operate at 85% utilization, how many GPUs are actively processing workloads?",
+    "answer": "40.8 effective GPU units",
+    "step_by_step_proof": "Active nodes = 8 - 2 = 6 nodes. Total GPUs on active nodes = 6 * 8 = 48 GPUs. Utilizing 85% = 48 * 0.85 = 40.8 GPUs."
+  }
+]

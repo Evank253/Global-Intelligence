@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kcn-postgres
+spec:
+  serviceName: kcn-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kcn-postgres
+  template:
+    metadata:
+      labels:
+        app: kcn-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: pgvector/pgvector:pg16
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: kcn_os
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: kcn-secrets
+              key: db-password
