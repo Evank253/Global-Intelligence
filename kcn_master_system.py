@@ -13,6 +13,7 @@ from kcn_v5 import PolicyEngine, TrustScoreEngine, ScenarioEngine
 from kcn_v6 import IntelligenceMessage, NodeRegistry, AgentIdentity, LLMGateway
 from kcn_v7 import HypothesisEngine, ExperimentDesigner, SimulationRunner, EvidenceEvaluator, ResearchPaperBuilder, PeerReviewAgent, ApprovalGate
 from kcn_v8 import KinematicController, MotionPlanner, ExecutionBridge, AssemblyAgent, EmergencyStopGate, RealityVerifier
+from kcn_v8.runtime_mode import hardware_mode_enabled
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("KCN.MasterSystem")
@@ -45,6 +46,7 @@ class KCNMasterSystem:
 
     def run_master_pipeline(self, query: str) -> Dict[str, Any]:
         session_id = f"session_{int(time.time() * 1000)}"
+        software_only_mode = not hardware_mode_enabled()
         logger.info(f"Initiating KCN v8 Master Apex Pipeline for Session: {session_id}")
 
         # v5 Governance & Trust Check
@@ -71,6 +73,7 @@ class KCNMasterSystem:
             "session_id": session_id,
             "status": "SUCCESS",
             "phase_milestone": "KCN_v8_EMBODIED_INTELLIGENCE_AND_ROBOTICS_LAYER",
+            "runtime_mode": "SOFTWARE_ONLY" if software_only_mode else "HARDWARE_ENABLED",
             "query": query,
             "v5_governance_and_trust": {
                 "policy_approved": policy_res["approved"],
@@ -92,7 +95,7 @@ class KCNMasterSystem:
                 "reality_ground_truth_match": reality_check["ground_truth_match"]
             },
             "master_decision_fusion": {
-                "consensus_verdict": "PROCEED_WITH_PHYSICAL_ROBOTIC_ACTUATION",
+                "consensus_verdict": "SOFTWARE_ONLY_SIMULATION_ACTIVE" if software_only_mode else "PROCEED_WITH_PHYSICAL_ROBOTIC_ACTUATION",
                 "black_box_risk_score": 0.00,
                 "ece_calibration_error": 0.018
             }
@@ -105,8 +108,10 @@ def main():
     print("=" * 80)
 
     master = KCNMasterSystem()
+    runtime_mode = "SOFTWARE_ONLY (default)" if not hardware_mode_enabled() else "HARDWARE_ENABLED"
     sample_query = "Deploy bio-inspired high-precision robotic assembly of microgrid dampening couplers."
 
+    print(f"\n[RUNTIME MODE]: {runtime_mode}")
     print(f"\n[QUERY]: '{sample_query}'\n")
     start = time.time()
     res = master.run_master_pipeline(sample_query)

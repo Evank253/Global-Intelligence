@@ -20,10 +20,16 @@ $$\begin{aligned}
 ## ⚡ Quick Start
 
 ### 1. Execute v4 Master Network Single File Bundle
-Run the self-contained master system:
+Run the self-contained master system (software-only mode by default, no robotics hardware required):
 ```bash
 python kcn_master_system.py
 ```
+
+> Local default: robotics/physical actuation is disabled (`KCN_ENABLE_HARDWARE` is off by default).
+> To explicitly opt into hardware mode, set:
+> ```bash
+> KCN_ENABLE_HARDWARE=true python kcn_master_system.py
+> ```
 
 ### 2. Execute Full Demonstrator Pipeline
 Run the multi-node reasoning demonstrator:
