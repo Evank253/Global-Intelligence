@@ -1,0 +1,44 @@
+{
+  "black_box_risk_score": 0.0,
+  "enforcement": "STRICT_UNALTERABLE_6_QUESTION_PASSPORT",
+  "sample_passports": [
+    {
+      "accountability_passport_id": "acc_dec_grid_stabilization_001",
+      "audit_trail": {
+        "1_why_decision_made": "Cross-domain transfer of cellular immunology principles to damp energy distribution cascades.",
+        "2_supporting_evidence": [
+          "kcn_v4_knowledge_network",
+          "domain_swarms_physics_medicine",
+          "independent_validation_engine"
+        ],
+        "3_approver_and_council": "Executive Cortex & Purpose Engine Council",
+        "4_considered_alternatives": [
+          "Isolate sub-grids without load balancing",
+          "Manual human operator override"
+        ],
+        "5_subsequent_outcome": "Simulated 99.4% power cascade mitigation without outages.",
+        "6_institutional_lesson": "Biological feedback inhibition scales linearly to power network topology."
+      },
+      "black_box_risk_score": 0.0,
+      "auditability_status": "FULLY_TRANSPARENT_AND_VERIFIED"
+    },
+    {
+      "accountability_passport_id": "acc_dec_quantum_compute_alloc_002",
+      "audit_trail": {
+        "1_why_decision_made": "Dynamic scheduling of H100 GPU cluster for high-priority climate model simulation.",
+        "2_supporting_evidence": [
+          "gpu_scheduler_v4",
+          "resource_market_v4"
+        ],
+        "3_approver_and_council": "Compute Fabric Workload Orchestrator",
+        "4_considered_alternatives": [
+          "Queue behind asynchronous archival indexing"
+        ],
+        "5_subsequent_outcome": "3.2x speedup in scenario convergence.",
+        "6_institutional_lesson": "Priority routing prevents cascading backpressure in multi-node clusters."
+      },
+      "black_box_risk_score": 0.0,
+      "auditability_status": "FULLY_TRANSPARENT_AND_VERIFIED"
+    }
+  ]
+}

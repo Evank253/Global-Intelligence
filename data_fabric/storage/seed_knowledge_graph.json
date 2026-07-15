@@ -1,0 +1,12 @@
+{
+  "graph_version": "v4.0",
+  "nodes": [
+    { "id": "concept_immunology_homeostasis", "label": "Concept", "domain": "Medicine", "properties": { "definition": "Negative feedback loop regulating immune cell population density." } },
+    { "id": "concept_grid_surges", "label": "Concept", "domain": "Engineering", "properties": { "definition": "Cascading power microgrid frequency deviations during transient peak loads." } },
+    { "id": "concept_dampening_feedback", "label": "Mechanism", "domain": "Cross-Domain Physics", "properties": { "mathematical_model": "dx/dt = -alpha * x + beta * u" } }
+  ],
+  "relationships": [
+    { "source": "concept_immunology_homeostasis", "target": "concept_dampening_feedback", "type": "EXEMPLIFIES", "weight": 0.98 },
+    { "source": "concept_dampening_feedback", "target": "concept_grid_surges", "type": "MITIGATES", "weight": 0.96 }
+  ]
+}

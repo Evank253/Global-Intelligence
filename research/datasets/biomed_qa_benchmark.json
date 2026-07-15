@@ -1,0 +1,8 @@
+[
+  {
+    "id": "biomed_001",
+    "question": "How does regulatory T-cell (Treg) IL-2 receptor signaling inhibit autoreactive effector T-cell proliferation?",
+    "mechanism": "High-affinity CD25 sequesters extracellular IL-2, starving cytotoxic effectors.",
+    "evidence_confidence": 0.99
+  }
+]
