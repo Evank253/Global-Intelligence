@@ -1,0 +1,12 @@
+[
+  {
+    "vector_id": "vec_bio_grid_001",
+    "embedding_dimension": 1536,
+    "sample_vector_head": [0.023, -0.045, 0.128, 0.892, -0.231],
+    "payload": {
+      "title": "Bio-Inspired Power Microgrid Cascade Mitigation",
+      "domain": "Engineering / Biology",
+      "provenance": "prov_seed_9821a3b"
+    }
+  }
+]

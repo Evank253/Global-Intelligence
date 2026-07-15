@@ -1,0 +1,8 @@
+[
+  {
+    "id": "law_001",
+    "question": "Does an AI agent's autonomous execution of contract provisions without human intervention invalidate mutual assent under UCC Article 2?",
+    "verdict": "No, provided the autonomous agent acts within pre-programmed parametric authorization bounds set by a legal principal.",
+    "jurisdiction_precedent": "Restatement (Third) of Agency § 1.04"
+  }
+]

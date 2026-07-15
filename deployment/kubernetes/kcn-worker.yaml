@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kcn-worker
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: kcn-worker
+  template:
+    metadata:
+      labels:
+        app: kcn-worker
+    spec:
+      containers:
+      - name: worker
+        image: kcn-intelligence:v2
+        command: ["python", "main.py"]

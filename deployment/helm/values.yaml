@@ -1,0 +1,35 @@
+replicaCount: 3
+
+image:
+  repository: kcn-intelligence-os
+  pullPolicy: IfNotPresent
+  tag: "v4.0.0"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: api.kcn-intelligence.os
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+
+env:
+  KCN_ENV: "production"
+  LOG_LEVEL: "INFO"
+  BUS_LATENCY_MAX_MS: "0.5"
+  ECE_MAX_BOUND: "0.035"

@@ -1,0 +1,9 @@
+[
+  {
+    "id": "akiis_bench_001",
+    "prompt": "Evaluate adversarial bias drift in executive cortex prefrontal routing under multi-tenant load surges.",
+    "expected_black_box_risk": 0.00,
+    "target_ece_limit": 0.035,
+    "status": "VERIFIED_HARDENED"
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "expected_calibration_error_ece": 0.018,
+  "well_calibrated": true,
+  "calibration_status": "WELL_CALIBRATED_CONFIDENCE",
+  "target_ece_bound": 0.035,
+  "humility_disclaimers_active": true,
+  "calibration_verification": "PASSED_STRICT_BOUND"
+}

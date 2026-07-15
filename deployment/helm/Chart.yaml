@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kcn-intelligence-os
+description: Helm chart for KCN Intelligence OS v4 Enterprise Cluster Deployment
+type: application
+version: 4.0.0
+appVersion: "4.0.0"

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "quantum_001",
+    "question": "What decoherence suppression topology protects topological Majorana zero modes in superconducting nanowires?",
+    "topology": "Non-Abelian braiding with braid phase invariance.",
+    "fidelity": 0.9994
+  }
+]
