@@ -17,10 +17,10 @@ class KinematicController:
 
 
 class MotionPlanner:
-    def plan_path(self, start_joint_state: List[float], target_pose: List[float], obstacle_list: List[Any]) -> Dict[str, Any]:
+    def plan_path(self, start_joint_state: List[float], target_state: List[float], obstacle_list: List[Any]) -> Dict[str, Any]:
         return {
             "start": start_joint_state,
-            "target": target_pose,
+            "target": target_state,
             "collision_free": True,
             "obstacle_count": len(obstacle_list),
         }

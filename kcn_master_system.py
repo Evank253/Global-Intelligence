@@ -90,6 +90,7 @@ class KCNMasterSystem:
                 "inverse_kinematics_solved": ik_res["solver_converged"],
                 "motion_plan_collision_free": motion_plan["collision_free"],
                 "hardware_safety_interlock": safety_check["hardware_interlock"],
+                "physical_actuation_channel": actuation_res["physical_actuation"],
                 "physical_actuation_status": actuation_res["execution_status"],
                 "assembly_task_status": assembly_res["status"],
                 "reality_ground_truth_match": reality_check["ground_truth_match"]

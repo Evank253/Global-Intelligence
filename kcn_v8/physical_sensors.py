@@ -4,12 +4,15 @@ KCN v8 Physical Sensors - software-safe local implementation.
 
 from typing import Dict, Any, List
 
+DEFAULT_FUSION_CONFIDENCE = 0.98
+OPTIMAL_GRASP_FORCE_THRESHOLD_N = 2.0
+
 
 class SensorFusion:
     def fuse(self, sensor_inputs: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "sources": list(sensor_inputs.keys()),
-            "fusion_confidence": 0.98,
+            "fusion_confidence": DEFAULT_FUSION_CONFIDENCE,
             "status": "SOFTWARE_ONLY_FUSION",
         }
 
@@ -24,10 +27,17 @@ class VisionPerception:
 
 class HapticFeedback:
     def process_tactile_surface(self, force_profile: List[float]) -> Dict[str, Any]:
-        avg_force = sum(force_profile) / max(len(force_profile), 1)
+        if not force_profile:
+            return {
+                "average_force_n": None,
+                "optimal_grasp_maintained": False,
+                "slip_detected": False,
+                "status": "NO_TACTILE_SIGNAL",
+            }
+        avg_force = sum(force_profile) / len(force_profile)
         return {
             "average_force_n": avg_force,
-            "optimal_grasp_maintained": avg_force <= 2.0,
+            "optimal_grasp_maintained": avg_force <= OPTIMAL_GRASP_FORCE_THRESHOLD_N,
             "slip_detected": False,
         }
 

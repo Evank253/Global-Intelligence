@@ -30,6 +30,7 @@ python kcn_master_system.py
 > ```bash
 > KCN_ENABLE_HARDWARE=true python kcn_master_system.py
 > ```
+> Accepted enable values: `true`, `1`, `yes`, or `on`.
 
 ### 2. Execute Full Demonstrator Pipeline
 Run the multi-node reasoning demonstrator:
