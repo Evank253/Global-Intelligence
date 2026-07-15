@@ -9,8 +9,8 @@ KCN Intelligence OS v4 is a distributed operational research and production netw
 ## 🏛 Platform Milestone Evolution (v1 $\rightarrow$ v4)
 
 $$\begin{aligned}
-\text{v1: Core Organism (Phases 1–120)} &\rightarrow \text{v2-RC1: Enterprise SaaS Platform (Phases 17–19)} \\
-&\rightarrow \text{v2-RC2: Security \& Trust Hardening (Phases 20–23)} \\
+\text{v1: Core Organism (Phases 1–120)} \rightarrow \text{v2-RC1: Enterprise SaaS Platform (Phases 17–19)} \\
+\rightarrow \text{v2-RC2: Security \Trust Hardening (Phases 20–23)} \\
 &\rightarrow \text{v3.0: Accreditation \ Marketplace Release (SDKs, Auditor Portal)} \\
 \rightarrow \mathbf{\text{v4.0: Global Intelligence Network Layer (Federated Nodes, Provenance Chains, Compute Fabric)}}
 \end{aligned}$$
