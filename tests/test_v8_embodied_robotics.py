@@ -13,6 +13,29 @@ from kcn_v8 import (
     EmergencyStopGate, CollisionAvoidance, ForceLimiter, FailsafeMonitor,
     GapAnalyzer, DomainRandomization, RealWorldBench, RealityVerifier
 )
+from kcn_v8 import autonomous_manufacturing, digital_to_physical, safety_controllers, sim2real_validation
+
+
+def test_v8_top_level_exports_match_subpackage_public_api():
+    assert ExecutionBridge is digital_to_physical.ExecutionBridge
+    assert SpatialMapping is digital_to_physical.SpatialMapping
+    assert TwinSynchronizer is digital_to_physical.TwinSynchronizer
+    assert LatencyGovernor is digital_to_physical.LatencyGovernor
+
+    assert AssemblyAgent is autonomous_manufacturing.AssemblyAgent
+    assert MaterialOptimizer is autonomous_manufacturing.MaterialOptimizer
+    assert QualityInspector is autonomous_manufacturing.QualityInspector
+    assert ShopfloorCoordinator is autonomous_manufacturing.ShopfloorCoordinator
+
+    assert EmergencyStopGate is safety_controllers.EmergencyStopGate
+    assert CollisionAvoidance is safety_controllers.CollisionAvoidance
+    assert ForceLimiter is safety_controllers.ForceLimiter
+    assert FailsafeMonitor is safety_controllers.FailsafeMonitor
+
+    assert GapAnalyzer is sim2real_validation.GapAnalyzer
+    assert DomainRandomization is sim2real_validation.DomainRandomization
+    assert RealWorldBench is sim2real_validation.RealWorldBench
+    assert RealityVerifier is sim2real_validation.RealityVerifier
 
 
 def test_v8_embodied_robotics_full_pipeline():
