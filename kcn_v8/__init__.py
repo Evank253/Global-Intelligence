@@ -10,12 +10,24 @@ from kcn_v8.digital_to_physical import (
     TwinSynchronizer,
     LatencyGovernor,
 )
-from kcn_v8.autonomous_manufacturing.assembly_agent import AssemblyAgent, MaterialOptimizer
-from kcn_v8.autonomous_manufacturing.quality_inspector import QualityInspector, ShopfloorCoordinator
-from kcn_v8.safety_controllers.emergency_stop_gate import EmergencyStopGate, CollisionAvoidance
-from kcn_v8.safety_controllers.force_limiter import ForceLimiter, FailsafeMonitor
-from kcn_v8.sim2real_validation.gap_analyzer import GapAnalyzer, DomainRandomization
-from kcn_v8.sim2real_validation.real_world_bench import RealWorldBench, RealityVerifier
+from kcn_v8.autonomous_manufacturing import (
+    AssemblyAgent,
+    MaterialOptimizer,
+    QualityInspector,
+    ShopfloorCoordinator,
+)
+from kcn_v8.safety_controllers import (
+    EmergencyStopGate,
+    CollisionAvoidance,
+    ForceLimiter,
+    FailsafeMonitor,
+)
+from kcn_v8.sim2real_validation import (
+    GapAnalyzer,
+    DomainRandomization,
+    RealWorldBench,
+    RealityVerifier,
+)
 
 __all__ = [
     "KinematicController", "MotionPlanner", "ActuatorInterface", "TrajectoryOptimizer",
