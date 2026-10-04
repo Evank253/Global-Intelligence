@@ -1,0 +1,133 @@
+name: KCN-AKIIS Capability Benchmark v1 Execution
+
+on:
+  push:
+    branches:
+      - Python-3
+
+permissions:
+  contents: read
+
+jobs:
+  execute-capability-benchmark-v1:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout benchmark runner repository
+        uses: actions/checkout@v4
+
+      - name: Checkout frozen benchmark corpus
+        uses: actions/checkout@v4
+        with:
+          repository: Evank253/Super-intelligence-under-human-authority-
+          ref: capability-benchmark-v1-freeze
+          path: frozen-benchmark
+          fetch-depth: 1
+
+      - name: Checkout exact KCN implementation under test
+        uses: actions/checkout@v4
+        with:
+          repository: Evank253/Global-Intelligence
+          ref: d748a7f4552fd7038e96a5366f6979d8a762dbc3
+          path: kcn-under-test
+          fetch-depth: 1
+
+      - name: Record runtime
+        run: |
+          python --version
+          sha256sum frozen-benchmark/capability-benchmark-v1/tasks/*.jsonl
+
+      - name: Execute frozen 140-task corpus
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+          from datetime import datetime, timezone
+
+          sys.path.insert(0, str(pathlib.Path("kcn-under-test").resolve()))
+          from kcn_intelligence_os import KCNIntelligenceOS
+
+          task_dir = pathlib.Path("frozen-benchmark/capability-benchmark-v1/tasks")
+          domains = ["science", "engineering", "mathematics", "strategy", "creativity", "planning", "research"]
+
+          tasks = []
+          for domain in domains:
+              path = task_dir / f"{domain}.jsonl"
+              with path.open("r", encoding="utf-8") as f:
+                  for line in f:
+                      if line.strip():
+                          tasks.append(json.loads(line))
+
+          if len(tasks) != 140:
+              raise SystemExit(f"Expected 140 frozen tasks, found {len(tasks)}")
+
+          out_dir = pathlib.Path("benchmark-execution-output")
+          out_dir.mkdir(parents=True, exist_ok=True)
+          records = out_dir / "raw-output-records.jsonl"
+
+          run_started = datetime.now(timezone.utc).isoformat()
+          kcn = KCNIntelligenceOS()
+
+          with records.open("w", encoding="utf-8") as out:
+              for i, task in enumerate(tasks, 1):
+                  started = datetime.now(timezone.utc).isoformat()
+                  try:
+                      result = kcn.execute(task["prompt"])
+                      status = "COMPLETED"
+                      error = None
+                  except Exception as exc:
+                      result = None
+                      status = "ERROR"
+                      error = repr(exc)
+                  finished = datetime.now(timezone.utc).isoformat()
+
+                  # This is an output record only. No capability score is computed here.
+                  record = {
+                      "record_type": "KCN_OUTPUT_RECORD",
+                      "task_id": task["task_id"],
+                      "domain": task["domain"],
+                      "task_type": task["type"],
+                      "execution_index": i,
+                      "implementation_commit": "d748a7f4552fd7038e96a5366f6979d8a762dbc3",
+                      "started_at": started,
+                      "finished_at": finished,
+                      "status": status,
+                      "raw_return_value": result,
+                      "exception": error,
+                  }
+                  out.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
+
+          raw_sha = hashlib.sha256(records.read_bytes()).hexdigest()
+
+          metadata = {
+              "record_type": "BENCHMARK_EXECUTION_RECORD",
+              "benchmark_version": "CB-v1.0",
+              "benchmark_state_before_execution": "BENCHMARK-FROZEN",
+              "corpus_task_count": 140,
+              "execution_started": True,
+              "execution_started_at": run_started,
+              "implementation_repository": "Evank253/Global-Intelligence",
+              "implementation_commit": "d748a7f4552fd7038e96a5366f6979d8a762dbc3",
+              "benchmark_repository": "Evank253/Super-intelligence-under-human-authority-",
+              "benchmark_ref": "capability-benchmark-v1-freeze",
+              "model_facing_paths_only": True,
+              "evaluator_reference_paths_read": False,
+              "scoring_performed": False,
+              "capability_score": "NOT_MEASURED",
+              "capability_claim": "NOT_ESTABLISHED",
+              "raw_output_records_sha256": raw_sha,
+          }
+          (out_dir / "execution-record.json").write_text(
+              json.dumps(metadata, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(metadata, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload raw output evidence only
+        uses: actions/upload-artifact@v4
+        with:
+          name: kcn-akiis-capability-v1-raw-output
+          path: benchmark-execution-output/
+          if-no-files-found: error
