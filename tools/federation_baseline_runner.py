@@ -206,17 +206,17 @@ def run_supported_probe(test: dict[str, str], classes: dict[str, type]) -> dict[
             {"assertion": "authenticated must not be true for an empty signature"},
         )
 
-    # AUTH-007: probe replay/uniqueness protection using the exposed handshake API.
+    # AUTH-007: the pinned API exposes no nonce, message ID, replay cache, or
+    # authorization-context parameter. An empty-signature probe would test
+    # authentication again, not replay resistance, so this case is NOT_MEASURED.
     if test_id == "T-AUTH-007":
-        request = {"peer_node_id": "replay-probe", "signature": ""}
-        response = classes["TrustHandshake"]().authenticate_peer(**request)
-        status = "FAIL" if response.get("authenticated") is True else "PASS"
         return result_record(
-            test, status,
-            "Handshake accepted a request with no signature; this API exposes no nonce or replay context."
-            if status == "FAIL" else "Empty-signature request was refused.",
-            request, response,
-            {"assertion": "unauthenticated/replayed material must not authorize a new action"},
+            test, "NOT_MEASURED",
+            "The pinned handshake API exposes no nonce, message ID, replay cache, or authorization context; "
+            "replaying a previously accepted authorization cannot be exercised faithfully through this API.",
+            {"api": "TrustHandshake.authenticate_peer(peer_node_id, signature)"},
+            None,
+            {"available_api": api_surface([classes["TrustHandshake"]])},
         )
 
     # AGREE-003: empty membership still receives a success/consensus response.
