@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MANIFEX-MILLENNIUM-FEDERATION-BASELINE-RUNNER-001
+MANIFEX-MILLENNIUM-FEDERATION-BASELINE-RUNNER-001\n\nWorkflow trigger revision: baseline runner is executed in GitHub Actions.
 
 Read-only baseline probes against the real KCN v6 federation classes.
 This runner does not implement a substitute federation and does not certify
