@@ -1,0 +1,50 @@
+name: Federation baseline evidence run
+
+on:
+  push:
+    branches:
+      - federation-baseline-runner-001
+    paths:
+      - "tools/federation_baseline_runner.py"
+      - ".github/workflows/federation-baseline.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout pinned implementation branch
+        uses: actions/checkout@v4
+        with:
+          ref: federation-baseline-runner-001
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify checkout identity
+        shell: bash
+        run: |
+          echo "HEAD=$(git rev-parse HEAD)"
+          echo "BASELINE_ANCESTOR=$(git merge-base --is-ancestor 754fb1ff22da0de58ec4db525f137d09a06ae75a HEAD && echo yes || echo no)"
+          git status --short
+
+      - name: Run pinned baseline probes
+        shell: bash
+        run: |
+          python tools/federation_baseline_runner.py --output-dir federation-baseline-evidence
+
+      - name: Upload raw evidence reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: federation-baseline-evidence
+          path: federation-baseline-evidence/
+          if-no-files-found: warn
+          retention-days: 90
