@@ -177,9 +177,17 @@ def result_record(
     request: Any = None,
     response: Any = None,
     observed: Any = None,
+    *,
+    execution_mode: str = "SOURCE_INSPECTION",
+    invocations: list[dict[str, Any]] | None = None,
+    test_execution_adequacy: str = "INSUFFICIENT_FOR_REQUIREMENT",
 ) -> dict[str, Any]:
     if status not in VALID_STATUSES:
         raise ValueError(f"Invalid status {status}")
+    if execution_mode not in {
+        "BEHAVIORAL_EXECUTION", "SOURCE_INSPECTION", "TABLE_DERIVATION", "BLOCKED"
+    }:
+        raise ValueError(f"Invalid execution mode {execution_mode}")
     return {
         **test,
         "status": status,
@@ -187,81 +195,261 @@ def result_record(
         "request": request,
         "response": response,
         "observed": observed,
+        "execution_mode": execution_mode,
+        "test_execution_adequacy": test_execution_adequacy,
+        "invocations": invocations or [],
     }
 
 
+def _invoke(
+    instance: Any,
+    method_name: str,
+    kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """Invoke a real pinned-baseline method and retain the raw observation."""
+    method = getattr(instance, method_name)
+    started = utc_now()
+    record: dict[str, Any] = {
+        "execution_mode": "BEHAVIORAL_EXECUTION",
+        "class": f"{type(instance).__module__}.{type(instance).__name__}",
+        "method": method_name,
+        "signature": str(inspect.signature(method)),
+        "input_kwargs": kwargs,
+        "started_at": started,
+    }
+    try:
+        raw = method(**kwargs)
+        record.update({
+            "outcome": "RETURN",
+            "raw_return_type": type(raw).__name__,
+            "raw_return": raw,
+        })
+    except Exception as exc:
+        record.update({
+            "outcome": "RAISE",
+            "exception_type": type(exc).__name__,
+            "exception_message": str(exc),
+        })
+    record["finished_at"] = utc_now()
+    return record
+
+
+def _unsupported(
+    test: dict[str, str],
+    classes: dict[str, type],
+    reason: str,
+    invocations: list[dict[str, Any]] | None = None,
+    observed: Any = None,
+) -> dict[str, Any]:
+    return result_record(
+        test, "NOT_MEASURED", reason,
+        request={"required_scenario": test["adversarial_injection"]},
+        response=(invocations[-1].get("raw_return") if invocations and invocations[-1].get("outcome") == "RETURN" else None),
+        observed={
+            "available_api": api_surface(list(classes.values())),
+            "behavioral_invocation_is_not_equivalent_to_requirement_coverage": True,
+            **(observed or {}),
+        },
+        execution_mode="BEHAVIORAL_EXECUTION" if invocations else "SOURCE_INSPECTION",
+        invocations=invocations or [],
+        test_execution_adequacy="INSUFFICIENT_FOR_REQUIREMENT",
+    )
+
+
 def run_supported_probe(test: dict[str, str], classes: dict[str, type]) -> dict[str, Any] | None:
+    """Run actual baseline methods where possible; never turn an unrelated call into test coverage."""
     test_id = test["test_id"]
+    invocations: list[dict[str, Any]] = []
+    handshake = classes["TrustHandshake"]
+    manager = classes["FederationManager"]
+    registry = classes["NodeRegistry"]
+    sync = classes["SyncProtocol"]
 
-    # AUTH-001: the real handshake currently ignores signature content.
-    if test_id == "T-AUTH-001":
-        request = {"peer_node_id": "baseline-probe", "signature": ""}
-        response = classes["TrustHandshake"]().authenticate_peer(**request)
-        status = "FAIL" if response.get("authenticated") is True else "PASS"
-        return result_record(
-            test, status,
-            "Empty signature was accepted as authenticated." if status == "FAIL"
-            else "Empty signature was not accepted as authenticated.",
-            request, response,
-            {"assertion": "authenticated must not be true for an empty signature"},
+    # Authentication probes. The public method has only peer_node_id/signature;
+    # caller authority flags, approval records, scope, and crypto material are absent.
+    if test_id in {"T-AUTH-001", "T-AUTH-004", "T-AUTH-005", "T-AUTH-006", "T-AUTH-007", "T-INV-01", "T-INV-03", "T-INV-09"}:
+        if test_id == "T-AUTH-001":
+            # First preserve what happens when the exact matrix payload is attempted.
+            invocations.append(_invoke(handshake(), "authenticate_peer", {
+                "peer_node_id": "baseline-probe",
+                "signature": "garbage",
+                "human_approved": True,
+                "verified": True,
+                "qualified": True,
+            }))
+            # Then exercise the accepted public interface with an invalid signature.
+            invocations.append(_invoke(handshake(), "authenticate_peer", {
+                "peer_node_id": "baseline-probe", "signature": ""
+            }))
+            last = invocations[-1]
+            if last.get("raw_return", {}).get("authenticated") is True:
+                status, reason = "FAIL", (
+                    "The exact matrix payload is not accepted by the method signature, but the real public "
+                    "method then reports authenticated=true for an empty signature. This is an observed "
+                    "unsupported authentication claim; flag-handling itself remains unmeasured."
+                )
+                adequacy = "PARTIAL_DIRECT_OBSERVATION"
+            else:
+                status, reason, adequacy = "NOT_MEASURED", (
+                    "The method did not accept the matrix's authority/status fields; application-level "
+                    "refusal semantics and an approval-record path are not exposed."
+                ), "INSUFFICIENT_FOR_REQUIREMENT"
+            return result_record(test, status, reason, invocations=invocations,
+                request={"matrix_payload": {"peer_node_id":"baseline-probe","signature":"garbage","human_approved":True,"verified":True,"qualified":True}},
+                response=last.get("raw_return"), observed={"method_invocations": invocations},
+                execution_mode="BEHAVIORAL_EXECUTION", test_execution_adequacy=adequacy)
+        signature = {
+            "T-AUTH-004": "arbitrary-signature",
+            "T-AUTH-005": "signature-value-A",
+            "T-AUTH-006": "signature-for-P1-presented-as-P2",
+            "T-AUTH-007": "replay-byte-identical",
+            "T-INV-01": "garbage",
+            "T-INV-03": "valid-signature-over-false-claim",
+            "T-INV-09": "authorization-without-scope",
+        }[test_id]
+        peer = "supreme-human-authority" if test_id == "T-INV-01" else (
+            "P2" if test_id == "T-AUTH-006" else "baseline-probe"
         )
+        first = _invoke(handshake(), "authenticate_peer", {"peer_node_id": peer, "signature": signature})
+        invocations.append(first)
+        if test_id == "T-AUTH-007":
+            invocations.append(_invoke(handshake(), "authenticate_peer", {"peer_node_id": peer, "signature": signature}))
+            both_return_authenticated = all(x.get("raw_return", {}).get("authenticated") is True for x in invocations)
+            return result_record(test, "FAIL" if both_return_authenticated else "NOT_MEASURED",
+                "Byte-identical replay was accepted identically; the API has no nonce, request ID, or replay context."
+                if both_return_authenticated else "Replay behavior could not be established from the observed calls.",
+                request={"first": {"peer_node_id":peer,"signature":signature}, "replay": {"peer_node_id":peer,"signature":signature}},
+                response=[x.get("raw_return", x.get("exception_message")) for x in invocations],
+                observed={"method_invocations": invocations, "replay_context_api": False},
+                execution_mode="BEHAVIORAL_EXECUTION",
+                test_execution_adequacy="PARTIAL_DIRECT_OBSERVATION" if both_return_authenticated else "INSUFFICIENT_FOR_REQUIREMENT")
+        returned = first.get("raw_return", {})
+        if returned.get("authenticated") is True and test_id in {"T-AUTH-005", "T-AUTH-006", "T-INV-01"}:
+            reason = {
+                "T-AUTH-005": "An arbitrary signature value was reported authenticated; no key verification was exercised.",
+                "T-AUTH-006": "The API has no proposal/domain parameter and reports the P2 peer authenticated from an arbitrary P1-labeled signature.",
+                "T-INV-01": "An authority-like peer identity with a garbage signature was reported authenticated; this is an unsupported authentication claim, not proof of authority creation.",
+            }[test_id]
+            status, adequacy = "FAIL", "PARTIAL_DIRECT_OBSERVATION"
+        elif test_id in {"T-AUTH-004", "T-AUTH-005", "T-AUTH-006", "T-INV-01"}:
+            status, reason, adequacy = "NOT_MEASURED", "The target response did not establish the matrix's required authority-boundary behavior.", "INSUFFICIENT_FOR_REQUIREMENT"
+        else:
+            status, reason, adequacy = "NOT_MEASURED", (
+                "A method call was captured, but the API has no cryptographic verifier/claim-status interface "
+                "to establish a genuinely valid signature over a false claim or scoped authorization."
+            ), "INSUFFICIENT_FOR_REQUIREMENT"
+        return result_record(test, status, reason, request={"peer_node_id":peer,"signature":signature},
+            response=returned, observed={"method_invocations":invocations,"method_has_no_key_or_scope_parameter":True},
+            execution_mode="BEHAVIORAL_EXECUTION", test_execution_adequacy=adequacy)
 
-    # AUTH-007: the pinned API exposes no nonce, message ID, replay cache, or
-    # authorization-context parameter. An empty-signature probe would test
-    # authentication again, not replay resistance, so this case is NOT_MEASURED.
-    if test_id == "T-AUTH-007":
-        return result_record(
-            test, "NOT_MEASURED",
-            "The pinned handshake API exposes no nonce, message ID, replay cache, or authorization context; "
-            "replaying a previously accepted authorization cannot be exercised faithfully through this API.",
-            {"api": "TrustHandshake.authenticate_peer(peer_node_id, signature)"},
-            None,
-            {"available_api": api_surface([classes["TrustHandshake"]])},
-        )
+    # Agreement probes. These calls expose membership-counting and unconditional finality,
+    # but do not emulate a vote/quorum API that the baseline does not implement.
+    if test_id in {"T-AGREE-001", "T-AGREE-002", "T-AGREE-003", "T-AGREE-004", "T-AGREE-005", "T-INV-02", "T-INV-04"}:
+        active = {
+            "T-AGREE-001": ["a", "a", "a"],
+            "T-AGREE-002": ["participant-X:vote-yes", "participant-X:vote-no"],
+            "T-AGREE-003": [],
+            "T-AGREE-004": ["unregistered-participant"],
+            "T-AGREE-005": ["proposal-digest-A", "proposal-digest-B"],
+            "T-INV-02": ["proposal-to-create-human-authority"],
+            "T-INV-04": ["unanimous-claim-without-evidence"],
+        }[test_id]
+        invocation = _invoke(manager(), "sync_federation", {"active_nodes": active})
+        invocations.append(invocation)
+        output = invocation.get("raw_return", {})
+        if test_id == "T-AGREE-001" and output.get("node_count") == 3:
+            status, reason, adequacy = "FAIL", "Duplicate participant identifiers inflate node_count to 3; the API does not deduplicate membership.", "PARTIAL_DIRECT_OBSERVATION"
+        elif test_id in {"T-AGREE-003", "T-AGREE-004"} and (
+            output.get("sync_status") == "SUCCESS" or output.get("network_consensus") == "UNIFIED_GLOBAL_STATE"
+        ):
+            status = "FAIL"
+            reason = "The method reports SUCCESS/UNIFIED_GLOBAL_STATE for an empty or unregistered-only participant set without votes or quorum inputs."
+            adequacy = "PARTIAL_DIRECT_OBSERVATION"
+        else:
+            return _unsupported(test, classes,
+                "The real method was invoked, but this row requires signed votes, proposal digests, quorum configuration, or domain evidence that the API does not accept. Its generic success output is retained as an observation, not misrepresented as a direct test of that missing control.",
+                invocations, {"participant_input": active, "raw_success_claim": output})
+        return result_record(test, status, reason, request={"active_nodes":active}, response=output,
+            observed={"method_invocations":invocations,"no_vote_or_quorum_parameters":True},
+            execution_mode="BEHAVIORAL_EXECUTION", test_execution_adequacy=adequacy)
 
-    # AGREE-003: empty membership still receives a success/consensus response.
-    if test_id == "T-AGREE-003":
-        request = {"active_nodes": []}
-        response = classes["FederationManager"]().sync_federation(**request)
-        declares_finality = (
-            response.get("network_consensus") == "UNIFIED_GLOBAL_STATE"
-            or response.get("sync_status") == "SUCCESS"
-        )
-        status = "FAIL" if declares_finality else "PASS"
-        return result_record(
-            test, status,
-            "The manager reports consensus/success with zero participants and no vote or quorum input."
-            if status == "FAIL" else "No success/finality claim observed for empty membership.",
-            request, response,
-            {"assertion": "no final decision without valid votes meeting the declared quorum"},
-        )
+    # Evidence registry probes. Registration and discovery are real behavior;
+    # independence disclosures and evidence ledgers are not implemented by this API.
+    if test_id in {"T-EVID-001", "T-EVID-002", "T-EVID-003", "T-EVID-004", "T-INV-06", "T-INV-07", "T-INV-08", "T-INV-10"}:
+        if test_id == "T-EVID-003":
+            invocation = _invoke(registry(), "register", {"node_id":"unverified-probe","capabilities":["baseline-test"]})
+            invocations.append(invocation)
+            output = invocation.get("raw_return", {})
+            status = "FAIL" if output.get("status") == "verified" else "NOT_MEASURED"
+            return result_record(test, status,
+                "Bare registration returns status='verified' without a verification record."
+                if status == "FAIL" else "No unsupported verified status was observed.",
+                request={"node_id":"unverified-probe","capabilities":["baseline-test"]}, response=output,
+                observed={"method_invocations":invocations,"verification_record_supplied":False},
+                execution_mode="BEHAVIORAL_EXECUTION",
+                test_execution_adequacy="PARTIAL_DIRECT_OBSERVATION" if status == "FAIL" else "INSUFFICIENT_FOR_REQUIREMENT")
+        if test_id == "T-EVID-004":
+            invocations.append(_invoke(registry(), "register", {"node_id":"overwrite-probe","capabilities":["safe-capability"]}))
+            invocations.append(_invoke(registry(), "register", {"node_id":"overwrite-probe","capabilities":["nuclear-launch"]}))
+            invocations.append(_invoke(registry(), "discover", {"capability":"nuclear-launch"}))
+            first, second, discovered = [x.get("raw_return") for x in invocations]
+            overwritten = bool(second and second.get("capabilities") == ["nuclear-launch"] and first != second)
+            return result_record(test, "FAIL" if overwritten else "NOT_MEASURED",
+                "Re-registering the same node silently replaces its prior capability record; no version/history interface is exposed."
+                if overwritten else "The test did not establish a silent overwrite.",
+                request={"first_registration":{"node_id":"overwrite-probe","capabilities":["safe-capability"]},
+                         "second_registration":{"node_id":"overwrite-probe","capabilities":["nuclear-launch"]}},
+                response={"first":first,"second":second,"discover":discovered},
+                observed={"method_invocations":invocations,"append_only_history_api":False},
+                execution_mode="BEHAVIORAL_EXECUTION",
+                test_execution_adequacy="PARTIAL_DIRECT_OBSERVATION" if overwritten else "INSUFFICIENT_FOR_REQUIREMENT")
+        if test_id == "T-EVID-002":
+            invocations.append(_invoke(registry(), "register", {"node_id":"independence-probe","capabilities":["nuclear-launch"]}))
+            invocations.append(_invoke(registry(), "discover", {"capability":"nuclear-launch"}))
+        elif test_id == "T-INV-06":
+            invocations.append(_invoke(registry(), "register", {"node_id":"status-probe","capabilities":["capability-A"]}))
+            invocations.append(_invoke(sync(), "synchronize_delta", {"state_hash":"caller-controlled-hash"}))
+        elif test_id == "T-INV-07":
+            invocations.append(_invoke(registry(), "register", {"node_id":"unknown-status-probe","capabilities":["NOT_MEASURED"]}))
+        elif test_id == "T-INV-08":
+            invocations.append(_invoke(registry(), "register", {"node_id":"component-only","capabilities":["component-qualified"]}))
+        elif test_id == "T-INV-10":
+            invocations.append(_invoke(sync(), "synchronize_delta", {"state_hash":"self-attestation-probe"}))
+        else:
+            invocations.append(_invoke(manager(), "sync_federation", {"active_nodes":["node-without-evidence"]}))
+        return _unsupported(test, classes,
+            "Behavioral calls were captured, but the pinned API exposes no evidence sufficiency, independence-disclosure, status-transition, qualification-inheritance, or independent-verification-status control for this requirement.",
+            invocations, {"raw_observations": [x.get("raw_return", x.get("exception_message")) for x in invocations]})
 
-    # EVID-003: registration assigns a verification label without verification evidence.
-    if test_id == "T-EVID-003":
-        request = {"node_id": "unverified-probe", "capabilities": ["baseline-test"]}
-        response = classes["NodeRegistry"]().register(**request)
-        status = "FAIL" if response.get("status") == "verified" else "PASS"
-        return result_record(
-            test, status,
-            "Node registration assigns status='verified' without accepting or checking a verification record."
-            if status == "FAIL" else "Registration did not assign verified status without evidence.",
-            request, response,
-            {"assertion": "caller-controlled metadata or bare registration must not establish verification"},
-        )
+    # Synchronization/ledger probes. These execute synchronize_delta, but do not
+    # pretend its echoed hash is a ledger, checkpoint, or durable-commit interface.
+    if test_id in {"T-LEDGER-001", "T-LEDGER-002", "T-LEDGER-003", "T-LEDGER-004"}:
+        hashes = {
+            "T-LEDGER-001": "garbage-caller-hash",
+            "T-LEDGER-002": "checkpoint-branch-A",
+            "T-LEDGER-003": "failure-between-write-and-ack",
+            "T-LEDGER-004": "replace-committed-event",
+        }
+        first = _invoke(sync(), "synchronize_delta", {"state_hash": hashes[test_id]})
+        invocations.append(first)
+        if test_id == "T-LEDGER-002":
+            invocations.append(_invoke(sync(), "synchronize_delta", {"state_hash":"checkpoint-branch-B"}))
+        return _unsupported(test, classes,
+            "synchronize_delta was behaviorally invoked and its raw IN_SYNC/hash-echo response was captured, but the pinned API has no event ledger, checkpoint, persistence, or recovery interface. This does not count as execution of the ledger requirement.",
+            invocations, {"echo_stub_diagnostic":True,
+                          "raw_sync_claims":[x.get("raw_return", x.get("exception_message")) for x in invocations],
+                          "ledger_requirement_executed":False})
 
-    # INV-03 asks whether a valid signature can be kept distinct from claim truth.
-    # The baseline has no cryptographic verifier or claim/evidence-status interface,
-    # so an honest status is NOT_MEASURED rather than an invented PASS/FAIL.
-    if test_id == "T-INV-03":
-        request = {"probe": "inspect signature and claim-verification interfaces"}
-        return result_record(
-            test, "NOT_MEASURED",
-            "The real baseline exposes no cryptographic signature-verification or claim-verification API; "
-            "the invariant cannot be behaviorally evaluated through these classes.",
-            request, None,
-            {"available_api": api_surface(list(classes.values()))},
-        )
+    # Execution protocol does not exist in the pinned API.
+    if test_id in {"T-EXEC-001", "T-EXEC-002"}:
+        return None
 
+    # Remaining cross-protocol invariants: execute a relevant public method only
+    # when doing so adds an observation; never infer an unexposed invariant passed.
+    if test_id == "T-INV-05":
+        invocations.append(_invoke(sync(), "synchronize_delta", {"state_hash":"rewritten-history-hash"}))
+        return _unsupported(test, classes, "The sync method was invoked, but no append-only ledger or independent checkpoint API exists.", invocations,
+                            {"ledger_requirement_executed":False})
     return None
 
 
@@ -273,14 +461,14 @@ def run_test(test: dict[str, str], classes: dict[str, type]) -> dict[str, Any]:
             record = result_record(
                 test,
                 "NOT_MEASURED",
-                "The frozen matrix case has no corresponding callable control in the pinned baseline API. "
-                "No mock or substitute protocol was introduced; the available real-class API was inspected.",
-                request={
-                    "required_scenario": test["adversarial_injection"],
-                    "target_api": api_surface(list(classes.values())),
-                },
+                "The pinned baseline exposes no callable control adequate to exercise this requirement. "
+                "The API surface was inspected; no mock or replacement protocol was introduced.",
+                request={"required_scenario": test["adversarial_injection"]},
                 response=None,
-                observed={"execution": "interface inspection only", "behavioral_test_executed": False},
+                observed={"available_api": api_surface(list(classes.values())),
+                          "behavioral_test_executed": False},
+                execution_mode="SOURCE_INSPECTION",
+                test_execution_adequacy="INSUFFICIENT_FOR_REQUIREMENT",
             )
         else:
             record = supported
@@ -296,6 +484,8 @@ def run_test(test: dict[str, str], classes: dict[str, type]) -> dict[str, Any]:
             request={"test_id": test["test_id"]},
             response=None,
             observed={"exception_type": type(exc).__name__, "exception": str(exc)},
+            execution_mode="BLOCKED",
+            test_execution_adequacy="BLOCKED",
         ) | {
             "started_at": started,
             "finished_at": utc_now(),
@@ -399,6 +589,13 @@ def main() -> int:
             },
             "independent_verification": "NOT_MEASURED",
             "counts": counts,
+            "execution_mode_counts": {mode: sum(1 for r in records if r.get("execution_mode") == mode) for mode in ("BEHAVIORAL_EXECUTION", "SOURCE_INSPECTION", "TABLE_DERIVATION", "BLOCKED")},
+            "measurement_system_warnings": [
+                "A method invocation is not automatically adequate coverage of the mapped requirement.",
+                "PARTIAL_DIRECT_OBSERVATION means the observed behavior supports only part of the test criterion.",
+                "Rows with test_execution_adequacy=INSUFFICIENT_FOR_REQUIREMENT remain NOT_MEASURED even if an adjacent method was invoked.",
+                "Invocation evidence is captured by this harness but is not independently authenticated by the report; a reviewer must reproduce or independently inspect it.",
+            ],
             "results": records,
             "limitations": [
                 "This runner is an author-controlled baseline probe, not independent verification.",
@@ -429,6 +626,12 @@ def main() -> int:
             f"- Tests loaded: {len(tests)}",
             f"- Independent verification: **NOT_MEASURED**",
             "",
+            "## Execution mode counts",
+            "",
+            "| Mode | Count |",
+            "|---|---:|",
+            *[f"| {mode} | {sum(1 for r in records if r.get('execution_mode') == mode)} |" for mode in ("BEHAVIORAL_EXECUTION", "SOURCE_INSPECTION", "TABLE_DERIVATION", "BLOCKED")],
+            "",
             "## Status counts",
             "",
             "| Status | Count |",
@@ -442,6 +645,9 @@ def main() -> int:
                 f"### {item['test_id']} — {item['status']}",
                 f"- Requirement: `{item['requirement_id']}`",
                 f"- Reason: {item['reason']}",
+                f"- Execution mode: `{item.get('execution_mode', 'SOURCE_INSPECTION')}`",
+                f"- Test execution adequacy: `{item.get('test_execution_adequacy', 'INSUFFICIENT_FOR_REQUIREMENT')}`",
+                f"- Captured method invocations: {len(item.get('invocations', []))}",
                 f"- Evidence artifact: `{item['test_id']}` entry in the JSON report",
                 "",
             ]
