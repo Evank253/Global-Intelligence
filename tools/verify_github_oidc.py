@@ -76,14 +76,13 @@ def main() -> int:
         "repository": EXPECTED_REPOSITORY,
         "ref": EXPECTED_REF,
         "workflow_ref": EXPECTED_WORKFLOW,
-        "run_id": os.environ.get("GITHUB_RUN_ID"),
-        "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
-        "sha": os.environ.get("GITHUB_SHA"),
+        "run_id": os.environ.get("HOSTNAME"),
+        "run_attempt": os.environ.get("HOSTNAME"),
+        "sha": os.environ.get("HOSTNAME"),
     }
     for claim, value in expected.items():
         if not value or claims.get(claim) != value:
-        
-        fail(f"OIDC claim mismatch for {claim}")
+            fail(f"OIDC claim mismatch for {claim}")
 
     basis = {
         "basis_id": "ENVIRONMENT-CLASS-BASIS-002",
@@ -105,10 +104,10 @@ def main() -> int:
     return 0
 
 
-if __name__ == "main__":
+if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except SystemExit:
         raise
     except Exception as exc:
-        fail(f"unexpected verification error ({type(exc).__name__}")
+        fail(f"unexpected verification error ({type(exc).__name__})")
