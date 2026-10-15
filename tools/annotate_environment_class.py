@@ -42,18 +42,36 @@ def main() -> int:
     report = json.loads(path.read_text(encoding="utf-8"))
     report["environment_class"] = environment_class
     report["baseline_qualification"] = "NOT_MEASURED"
-    # Preserve the classification basis as evidence; these signals corroborate
-    # runtime context but are not cryptographic attestation.
-    report["environment_class_basis"] = {
-        "basis_id": "ENVIRONMENT-CLASS-BASIS-001",
-        "detection_rule": "github_actions_true_and_runner_os_and_run_id_present",
-        "github_actions": os.environ.get("GITHUB_ACTIONS") == "true",
-        "runner_os": os.environ.get("RUNNER_OS") or None,
-        "github_run_id": os.environ.get("GITHUB_RUN_ID") or None,
-        "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT") or None,
-        "detected_class": detected,
-        "cryptographic_attestation": False,
-    }
+    # Preserve the verified OIDC identity basis for CI; local sandbox signals
+    # remain explicitly non-cryptographic.
+    basis_file = os.environ.get("MANIFEX_OIDC_BASIS_FILE")
+    if environment_class == "github_hosted_ci":
+        if not basis_file:
+            print("verified OIDC basis file is required for github_hosted_ci", file=sys.stderr)
+            return 2
+        try:
+            basis = json.loads(Path(basis_file).read_text(encoding="utf-8"))
+        except Exception:
+            print("OIDC basis file is unreadable or invalid", file=sys.stderr)
+            return 2
+        if basis.get("basis_id") != "ENVIRONMENT-CLASS-BASIS-002" or basis.get("oidc_verified") is not True:
+            print("OIDC basis is not verified", file=sys.stderr)
+            return 2
+        if basis.get("run_id") != os.environ.get("GITHUB_RUN_ID") or basis.get("sha") != os.environ.get("GITHUB_SHA"):
+            print("OIDC basis does not match this workflow run", file=sys.stderr)
+            return 2
+        report["environment_class_basis"] = basis
+    else:
+        report["environment_class_basis"] = {
+            "basis_id": "ENVIRONMENT-CLASS-BASIS-001",
+            "detection_rule": "github_actions_true_and_runner_os_and_run_id_present",
+            "github_actions": os.environ.get("GITHUB_ACTIONS") == "true",
+            "runner_os": os.environ.get("RUNNER_OS") or None,
+            "github_run_id": os.environ.get("GITHUB_RUN_ID") or None,
+            "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT") or None,
+            "detected_class": detected,
+            "cryptographic_attestation": False,
+        }
     report["capture_annotation"] = {
         "field_added_by": "tools/annotate_environment_class.py",
         "pinned_runner_modified": False,
