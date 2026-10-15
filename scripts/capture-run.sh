@@ -25,6 +25,33 @@ if [[ "$DECLARED_ENVIRONMENT_CLASS" != "$DETECTED_ENVIRONMENT_CLASS" ]]; then
   exit 20
 fi
 readonly ENVIRONMENT_CLASS="$DETECTED_ENVIRONMENT_CLASS"
+if [[ "$ENVIRONMENT_CLASS" == "github_hosted_ci" ]]; then
+  OIDC_BASIS_FILE="${MANIFEX_OIDC_BASIS_FILE:-}"
+  if [[ -z "$OIDC_BASIS_FILE" || ! -f "$OIDC_BASIS_FILE" ]]; then
+    echo "BLOCKED: github_hosted_ci requires verified GitHub OIDC basis" >&2
+    exit 20
+  fi
+  python3 - "$OIDC_BASIS_FILE" <<'PY_OIDC'
+import json, os, sys
+try:
+    basis = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    raise SystemExit("BLOCKED: OIDC basis is not valid JSON")
+expected = {
+    "basis_id": "ENVIRONMENT-CLASS-BASIS-002",
+    "detected_class": "github_hosted_ci",
+    "oidc_verified": True,
+    "repository": "Evank253/Global-Intelligence",
+    "ref": os.environ.get("GITHUB_REF"),
+    "run_id": os.environ.get("GITHUB_RUN_ID"),
+    "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+    "sha": os.environ.get("GITHUB_SHA"),
+}
+for key, value in expected.items():
+    if not value or basis.get(key) != value:
+        raise SystemExit(f"BLOCKED: OIDC basis mismatch for {key}")
+PY_OIDC
+fi
 case "$ENVIRONMENT_CLASS" in
   sandbox_smoke_test|github_hosted_ci) ;;
   controlled_host) echo "BLOCKED: controlled_host requires separately reviewed decision record support" >&2; exit 20 ;;
@@ -127,16 +154,25 @@ is_github_actions = (
     and bool(os.environ.get("GITHUB_RUN_ID"))
 )
 detected_class = "github_hosted_ci" if is_github_actions else "sandbox_smoke_test"
-environment_class_basis = {
-    "basis_id": "ENVIRONMENT-CLASS-BASIS-001",
-    "detection_rule": "github_actions_true_and_runner_os_and_run_id_present",
-    "github_actions": os.environ.get("GITHUB_ACTIONS") == "true",
-    "runner_os": os.environ.get("RUNNER_OS") or None,
-    "github_run_id": os.environ.get("GITHUB_RUN_ID") or None,
-    "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT") or None,
-    "detected_class": detected_class,
-    "cryptographic_attestation": False,
-}
+basis_file = os.environ.get("MANIFEX_OIDC_BASIS_FILE")
+if environment_class == "github_hosted_ci":
+    if not basis_file:
+        raise SystemExit("github_hosted_ci requires verified OIDC basis file")
+    with open(basis_file, encoding="utf-8") as source:
+        environment_class_basis = json.load(source)
+    if environment_class_basis.get("oidc_verified") is not True:
+        raise SystemExit("OIDC basis is not verified")
+else:
+    environment_class_basis = {
+        "basis_id": "ENVIRONMENT-CLASS-BASIS-001",
+        "detection_rule": "github_actions_true_and_runner_os_and_run_id_present",
+        "github_actions": os.environ.get("GITHUB_ACTIONS") == "true",
+        "runner_os": os.environ.get("RUNNER_OS") or None,
+        "github_run_id": os.environ.get("GITHUB_RUN_ID") or None,
+        "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT") or None,
+        "detected_class": detected_class,
+        "cryptographic_attestation": False,
+    }
 if environment_class != detected_class:
     raise SystemExit("capture metadata environment class conflicts with detected runtime signals")
 payload = {
