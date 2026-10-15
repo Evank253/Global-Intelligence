@@ -40,14 +40,12 @@ def main() -> int:
     # actual endpoint instead of a generic message. Redact nothing sensitive
     # here - this is a public hostname/scheme pair.
     print(f"OIDC_DEBUG: scheme={parsed.scheme!r} hostname={parsed.hostname!r} netloc={parsed.netloc!r}", file=sys.stderr)
-    # GitHub has used both hostnames for the OIDC token request endpoint across
-    # runner versions; accept either. The security property is https + this host
-    # family + a bearer-authorized request to the actions-controlled endpoint.
-    allowed_hosts = {
-        "token.actions.githubusercontent.com",
-        "pipelines.actions.githubusercontent.com",
-    }
-    if parsed.scheme != "https" or parsed.hostname not in allowed_hosts:
+    # Security property: https + the actions.githubusercontent.com domain
+    # family. GitHub has used token.actions, pipelines.actions, and regional
+    # run-actions-<region>.actions hosts across runner versions; a fixed set
+    # misses the regional ones. First label is the variable part.
+    parts = (parsed.hostname or "").split(".")
+    if parsed.scheme != "https" or len(parts) < 3 or parts[-2:] != ["actions", "githubusercontent"] or parts[0] == "":
         fail("unexpected OIDC request endpoint")
     query = urllib.parse.parse_qs(parsed.query)
     query["audience"] = [AUDIENCE]
