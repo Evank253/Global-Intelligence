@@ -1,1 +1,113 @@
-PLACEHOLDER
+{
+  "artifact_type": "MANIFEX-MILLENNIUM-FEDERATION-BASELINE-REPORT-001",
+  "status": "OBSERVATION_ONLY_NOT_INDEPENDENT_VERIFICATION",
+  "environment_class": "sandbox_smoke_test",
+  "environment_class_basis": {
+    "basis_id": "ENVIRONMENT-CLASS-BASIS-001",
+    "detection_rule": "x",
+    "github_actions": false,
+    "runner_os": null,
+    "github_run_id": null,
+    "github_run_attempt": null,
+    "detected_class": "sandbox_smoke_test",
+    "cryptographic_attestation": false
+  },
+  "baseline": {
+    "pinned_commit_sha": "754fb1ff22da0de58ec4db525f137d09a06ae75a",
+    "executed_checkout_head_sha": "9a3d6768b0338203b478afe883ea13c46d7a7578",
+    "pinned_commit_is_ancestor_of_head": true,
+    "source_file_blob_checks": {
+      "kcn_v6/federation_layer/federation_manager.py": {
+        "expected_blob_sha": "d78b9fc67db006aa458a2d12649bbf0392c4636e",
+        "actual_blob_sha": "d78b9fc67db006aa458a2d12649bbf0392c4636e",
+        "status": "PASS"
+      },
+      "kcn_v6/federation_layer/trust_handshake.py": {
+        "expected_blob_sha": "c882dcfaa780b722bd24e8cf1538c20f1c71e8b7",
+        "actual_blob_sha": "c882dcfaa780b722bd24e8cf1538c20f1c71e8b7",
+        "status": "PASS"
+      },
+      "kcn_v6/federation_layer/sync_protocol.py": {
+        "expected_blob_sha": "14e84ac22c3f438bb8f829b69512e8ffede2ea3f",
+        "actual_blob_sha": "14e84ac22c3f438bb8f829b69512e8ffede2ea3f",
+        "status": "PASS"
+      },
+      "kcn_v6/federation_layer/node_registry.py": {
+        "expected_blob_sha": "e9f0d1d047fa29b0a65ebe217609d1de22767063",
+        "actual_blob_sha": "e9f0d1d047fa29b0a65ebe217609d1de22767063",
+        "status": "PASS"
+      },
+      "kcn_v6/federation_layer/__init__.py": {
+        "expected_blob_sha": "256132d2e420c38cbf7bc9c6e63448579cfaaa29",
+        "actual_blob_sha": "256132d2e420c38cbf7bc9c6e63448579cfaaa29",
+        "status": "PASS"
+      }
+    }
+  },
+  "specification": {
+    "commit_sha": "0fdb465382a0104ed7ae9870b0a5df4325575fbf",
+    "matrix_git_blob_sha": "5568396eb0e39ab5c927bd80051f701aa3bd3aeb",
+    "matrix_tests_loaded": 32
+  },
+  "results": [
+    {"test_id": "T-AUTH-001", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AUTH-002", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AUTH-003", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AUTH-004", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AUTH-005", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AUTH-006", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AUTH-007", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AGREE-001", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AGREE-002", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AGREE-003", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AGREE-004", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-AGREE-005", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-EVID-001", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-EVID-002", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-EVID-003", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-EVID-004", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-LEDGER-001", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-LEDGER-002", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-LEDGER-003", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-LEDGER-004", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-EXEC-001", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-EXEC-002", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-01", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "FAIL", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-02", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-03", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-04", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-05", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-06", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-07", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-08", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-09", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []},
+    {"test_id": "T-INV-10", "requirement_id": "R", "protocol": "p", "setup": "s", "adversarial_injection": "a", "expected_outcome": "e", "evidence_artifact": "x", "matrix_status": "active", "status": "NOT_MEASURED", "reason": "probe", "request": null, "response": null, "observed": {}, "execution_mode": "SOURCE_INSPECTION", "test_execution_adequacy": "INSUFFICIENT_FOR_REQUIREMENT", "invocations": []}
+  ],
+  "counts": {
+    "PASS": 0,
+    "FAIL": 9,
+    "NOT_MEASURED": 23,
+    "BLOCKED": 0
+  },
+  "execution_mode_counts": {
+    "BEHAVIORAL_EXECUTION": 0,
+    "SOURCE_INSPECTION": 32,
+    "TABLE_DERIVATION": 0,
+    "BLOCKED": 0
+  },
+  "independent_verification": "NOT_MEASURED",
+  "baseline_qualification": "NOT_MEASURED",
+  "run_id": "local",
+  "annotation": {
+    "kind": "LOCAL_SANDBOX_OBSERVATION",
+    "source": "Ara local probe rebuilt from pinned blobs via GitHub connector",
+    "oidc_layer": "ABSENT",
+    "ci_run_id": null,
+    "runner_commit": "9a3d6768b0338203b478afe883ea13c46d7a7578",
+    "baseline_commit": "754fb1ff22da0de58ec4db525f137d09a06ae75a",
+    "spec_commit": "0fdb465382a0104ed7ae9870b0a5df4325575fbf",
+    "meaning": "harness-validity and baseline-behavior observation; not federation qualification; not independent verification",
+    "fail_origin": "baseline classes at 754fb1ff return unconditional success; OIDC patches on fix/oidc-patches-v2 do not modify these classes",
+    "honest_status": "9 FAIL / 23 NOT_MEASURED / 0 PASS / 0 BLOCKED preserved as measured"
+  }
+}

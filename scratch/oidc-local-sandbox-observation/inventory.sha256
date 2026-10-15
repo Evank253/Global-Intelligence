@@ -1,1 +1,13 @@
-PLACEHOLDER
+0d8f030825d3c324960a6c43b64c250b2ae69fd27bbbbddd7f2887bc8e5e2118  ./README.md
+3d6c4dbc9d84a158a678e53fc6236e28bfbfbe82c4d25730f3aab7e07b494b57  ./capture-metadata.json
+510dbf0daa49da8f9106f56823ca73f171ed2f24cc67e9499fdd8fcf316ce939  ./environment.txt
+d4c5891b2d265d9c68d280950e62c701df1377b633d49e8cd9b45db91e9485a8  ./federation-baseline-local.json
+1d3fd9c0abc08abd94a5449a83c28f61f80a106b9b1cfc1d99f8457db7743967  ./federation-baseline-local.md
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./git-clone.stderr.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./git-clone.stdout.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./git-fetch.stderr.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./git-fetch.stdout.log
+9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa  ./runner.exit-code.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./runner.stderr.log
+dc51b8c96c2d745df3bd5590d990230a482fd247123599548e0632fdbf97fc22  ./runner.stdout.log
+a9672996bfc120b7f340ba987658a549808c66bad0ab35b4215da456c2562068  ./source-pin-checks.txt
