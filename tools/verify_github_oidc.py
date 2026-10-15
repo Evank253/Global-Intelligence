@@ -38,7 +38,7 @@ def main() -> int:
         fail("GITHUB_ACTIONS is not true")
 
     parsed = urllib.parse.urlsplit(request_url)
-    if parsed.scheme != "https" or parsed.hostname != "github.com":
+    if parsed.scheme != "https" or parsed.hostname != "pipelines.actions.githubusercontent.com":
         fail("unexpected OIDC request endpoint")
     query = urllib.parse.parse_qs(parsed.query)
     query["audience"] = [AUDIENCE]
