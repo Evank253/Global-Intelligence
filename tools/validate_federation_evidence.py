@@ -70,8 +70,21 @@ def main() -> int:
             "capture metadata environment_class is missing or invalid")
     basis = metadata.get("environment_class_basis")
     require(isinstance(basis, dict), "capture metadata environment_class_basis is missing")
-    require(basis.get("basis_id") == "ENVIRONMENT-CLASS-BASIS-001",
+    require(basis.get("basis_id") in {"ENVIRONMENT-CLASS-BASIS-001", "ENVIRONMENT-CLASS-BASIS-002"},
             "unknown or missing environment classification basis")
+    if metadata.get("environment_class") == "github_hosted_ci":
+        require(basis.get("basis_id") == "ENVIRONMENT-CLASS-BASIS-002",
+                "github_hosted_ci requires OIDC-backed classification basis")
+        require(basis.get("oidc_verified") is True,
+                "github_hosted_ci OIDC identity was not verified")
+        require(basis.get("repository") == "Evank253/Global-Intelligence",
+                "OIDC repository claim mismatch")
+        require(basis.get("ref") == "refs/heads/federation-dual-track-audit",
+                "OIDC ref claim mismatch")
+        require(isinstance(basis.get("run_id"), str) and basis["run_id"],
+                "OIDC run_id claim missing")
+        require(isinstance(basis.get("sha"), str) and re.fullmatch(r"[0-9a-f]{40}", basis["sha"]) is not None,
+                "OIDC SHA claim missing or malformed")
     require(basis.get("detected_class") == metadata.get("environment_class"),
             "capture metadata class does not match its classification basis")
     require(basis.get("cryptographic_attestation") is False,
