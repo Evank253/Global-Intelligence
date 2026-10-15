@@ -9,9 +9,16 @@ readonly BASELINE_COMMIT="754fb1ff22da0de58ec4db525f137d09a06ae75a"
 readonly SPEC_COMMIT="0fdb465382a0104ed7ae9870b0a5df4325575fbf"
 readonly RUNNER_BLOB="bacacb4252911486c252bd87e34a4976b75eb4db"
 readonly OBSERVATION_LABEL="harness-validity observation — not a certified baseline value"
+readonly ENVIRONMENT_CLASS="${MANIFEX_ENVIRONMENT_CLASS:-github_hosted_ci}"
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)"
 readonly VALIDATOR="$REPO_ROOT/tools/validate_federation_evidence.py"
+
+case "$ENVIRONMENT_CLASS" in
+  sandbox_smoke_test|github_hosted_ci) ;;
+  controlled_host) echo "BLOCKED: controlled_host requires separately reviewed decision record support" >&2; exit 20 ;;
+  *) echo "BLOCKED: invalid environment class: $ENVIRONMENT_CLASS" >&2; exit 20 ;;
+esac
 
 if ! command -v git >/dev/null 2>&1; then echo "BLOCKED: git is required" >&2; exit 20; fi
 if ! command -v python3 >/dev/null 2>&1; then echo "BLOCKED: python3 is required" >&2; exit 20; fi
@@ -100,6 +107,7 @@ import json, os, sys
 path, runner, baseline, spec, label, head, blob, rc = sys.argv[1:]
 payload = {
     "capture_type": "PINNED_RUNNER_CAPTURE_001",
+    "environment_class": os.environ.get("MANIFEX_ENVIRONMENT_CLASS", "github_hosted_ci"),
     "runner_commit": runner,
     "baseline_commit": baseline,
     "spec_commit": spec,
