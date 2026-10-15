@@ -8,6 +8,7 @@ on:
     paths:
       - "scripts/capture-run.sh"
       - "tools/validate_federation_evidence.py"
+      - "tools/annotate_environment_class.py"
       - ".github/workflows/federation-audit-capture.yml"
 
 permissions:
