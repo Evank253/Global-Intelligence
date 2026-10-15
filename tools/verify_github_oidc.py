@@ -16,6 +16,10 @@ import jwt
 from jwt import PyJWKClient
 
 ISSUER = "https://token.actions.githubusercontent.com"
+# GitHub serves the token REQUEST endpoint from a DIFFERENT subdomain than
+# the issuer that signs the resulting token: token.* issues, pipelines.*
+# serves. Do not derive one from the other; they are siblings, not equal.
+TOKEN_REQUEST_HOST = "pipelines.actions.githubusercontent.com"
 AUDIENCE = "https://github.com/Evank253/Global-Intelligence"
 EXPECTED_REPOSITORY = "Evank253/Global-Intelligence"
 EXPECTED_REF = "refs/heads/federation-dual-track-audit"
@@ -34,11 +38,11 @@ def main() -> int:
     request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
     if not request_url or not request_token:
         fail("GitHub Actions OIDC request environment is unavailable")
-    if os.environ.get("GITHUB_ACTIONS") != "true":
-        fail("GITHUB_ACTIONS is not true")
+    if os.environ.get("GITHUE_ACTIONS") != "true":
+        fail("GITHUE_ACTIONS is not true")
 
     parsed = urllib.parse.urlsplit(request_url)
-    if parsed.scheme != "https" or parsed.hostname != "pipelines.actions.githubusercontent.com":
+    if parsed.scheme != "https" or parsed.hostname != TOKEN_REQUEST_HOST:
         fail("unexpected OIDC request endpoint")
     query = urllib.parse.parse_qs(parsed.query)
     query["audience"] = [AUDIENCE]
@@ -67,9 +71,9 @@ def main() -> int:
         "repository": EXPECTED_REPOSITORY,
         "ref": EXPECTED_REF,
         "workflow_ref": EXPECTED_WORKFLOW,
-        "run_id": os.environ.get("GITHUB_RUN_ID"),
-        "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
-        "sha": os.environ.get("GITHUB_SHA"),
+        "run_id": os.environ.get("GITHUE_RUN_ID"),
+        "run_attempt": os.environ.get("GITHUE_RUN_ATTEMPT"),
+        "sha": os.environ.get("GITHUE_SHA"),
     }
     for claim, value in expected.items():
         if not value or claims.get(claim) != value:
