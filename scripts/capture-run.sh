@@ -102,6 +102,10 @@ RUNNER_RC=$?
 set -e
 printf '%s\n' "$RUNNER_RC" > "$OUT/runner.exit-code.txt"
 
+if [[ "$RUNNER_RC" -eq 0 ]]; then
+  python3 "$WORK/repo/tools/annotate_environment_class.py" "$OUT" "$ENVIRONMENT_CLASS" >"$OUT/annotation.stdout.log" 2>"$OUT/annotation.stderr.log" || { echo "BLOCKED: environment annotation failed" >&2; exit 20; }
+fi
+
 python3 - "$OUT/capture-metadata.json" "$RUNNER_COMMIT" "$BASELINE_COMMIT" "$SPEC_COMMIT" "$OBSERVATION_LABEL" "$ACTUAL_HEAD" "$ACTUAL_RUNNER_BLOB" "$RUNNER_RC" <<'PY'
 import json, os, sys
 path, runner, baseline, spec, label, head, blob, rc = sys.argv[1:]
