@@ -80,3 +80,19 @@ References:
 
 **Outcome:** The specified commit exists at the expected SHA, and the matrix file's retrieved Git blob SHA matches the expected pin. This preflight check did not detect a mismatch in either of the two requested pins. No federation tests were run as part of this check. This retrieval verifies GitHub object identity; it is not a substitute for an independently controlled reviewer or execution environment.
 
+
+
+## Environment-class gate implementation
+
+The audit branch now defines and enforces the required `report.json.environment_class` field with exactly three allowed values: `sandbox_smoke_test`, `github_hosted_ci`, and `controlled_host`. The retired `sandbox_validity_label` is rejected in the report rather than coexisting with the new field.
+
+- `sandbox_smoke_test` and `github_hosted_ci` require both `independent_verification` and `baseline_qualification` to remain `NOT_MEASURED`.
+- Report and capture metadata must agree on `environment_class`.
+- `controlled_host` requires a pre-run decision-record reference with a non-empty decision ID, SHA-256 digest, `auditor_accepted: true`, and `accepted_before_run: true`.
+- The current capture launcher explicitly blocks `controlled_host`; that path is not authorized until decision-record handling and controlled-host operation are implemented and reviewed. This prevents an ordinary CI capture from claiming controlled-host status.
+- The pinned runner source is not modified. `tools/annotate_environment_class.py` adds capture-side environment metadata after the runner writes its raw report and marks that annotation as capture-side.
+- The GitHub Actions workflow explicitly sets `github_hosted_ci`.
+
+Specification: `docs/evidence-environment-class-addendum-001.md`.
+
+**Validation boundary:** The validator and capture artifacts have been updated in GitHub, but no local syntax/test run or real runner execution is claimed by this ledger entry. Until the workflow output and raw artifacts are inspected, evidence-schema validation against real output remains `NOT_PERFORMED`, independent audit remains `NOT_PERFORMED`, and baseline qualification remains `NOT_MEASURED`.
