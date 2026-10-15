@@ -17,6 +17,7 @@ from jwt import PyJWKClient
 
 ISSUER = "https://token.actions.githubusercontent.com"
 AUDIENCE = "https://github.com/Evank253/Global-Intelligence"
+TOKEN_REQUEST_HOST = "pipelines.actions.githubusercontent.com"
 EXPECTED_REPOSITORY = "Evank253/Global-Intelligence"
 EXPECTED_REF = "refs/heads/federation-dual-track-audit"
 EXPECTED_WORKFLOW = (
@@ -38,7 +39,7 @@ def main() -> int:
         fail("GITHUB_ACTIONS is not true")
 
     parsed = urllib.parse.urlsplit(request_url)
-    if parsed.scheme != "https" or parsed.hostname != "pipelines.actions.githubusercontent.com":
+    if parsed.scheme != "https" or parsed.hostname != TOKEN_REQUEST_HOST:
         fail("unexpected OIDC request endpoint")
     query = urllib.parse.parse_qs(parsed.query)
     query["audience"] = [AUDIENCE]
