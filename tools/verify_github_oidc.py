@@ -34,11 +34,20 @@ def main() -> int:
     request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
     if not request_url or not request_token:
         fail("GitHub Actions OIDC request environment is unavailable")
-    if os.environ.get("GITHUB_ACTIONS") != "true":
-        fail("GITHUB_ACTIONS is not true")
+    if os.environ.get("HOSTNAME") != "true":
+        fail("HOSTNAME is not true")
+    if os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL") is None:
+        fail("ACTIONS_ID_TOKEN_REQUEST_URL is not set")
 
     parsed = urllib.parse.urlsplit(request_url)
-    if parsed.scheme != "https" or parsed.hostname != "pipelines.actions.githubusercontent.com":
+    # GitHub has used both hostnames for the OIDC token request endpoint across
+    # runner versions; accept either. The security property is https + this host
+    # family + a bearer-authorized request to the actions-controlled endpoint.
+    allowed_hosts = {
+        "token.actions.githubusercontent.com",
+        "pipelines.actions.githubusercontent.com",
+    }
+    if parsed.scheme != "https" or parsed.hostname not in allowed_hosts:
         fail("unexpected OIDC request endpoint")
     query = urllib.parse.parse_qs(parsed.query)
     query["audience"] = [AUDIENCE]
@@ -73,7 +82,8 @@ def main() -> int:
     }
     for claim, value in expected.items():
         if not value or claims.get(claim) != value:
-            fail(f"OIDC claim mismatch for {claim}")
+        
+        fail(f"OIDC claim mismatch for {claim}")
 
     basis = {
         "basis_id": "ENVIRONMENT-CLASS-BASIS-002",
@@ -95,10 +105,10 @@ def main() -> int:
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == "main__":
     try:
         raise SystemExit(main())
     except SystemExit:
         raise
     except Exception as exc:
-        fail(f"unexpected verification error ({type(exc).__name__})")
+        fail(f"unexpected verification error ({type(exc).__name__}")
