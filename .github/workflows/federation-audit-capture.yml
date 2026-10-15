@@ -31,6 +31,7 @@ jobs:
 
       - name: Record GitHub Actions environment
         run: |
+          echo "MANIFEX_ENVIRONMENT_CLASS=github_hosted_ci" >> "$GITHUB_ENV"
           echo "github_runner_os=$RUNNER_OS"
           echo "github_run_id=$GITHUB_RUN_ID"
           echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
