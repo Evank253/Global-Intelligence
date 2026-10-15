@@ -9,15 +9,26 @@ readonly BASELINE_COMMIT="754fb1ff22da0de58ec4db525f137d09a06ae75a"
 readonly SPEC_COMMIT="0fdb465382a0104ed7ae9870b0a5df4325575fbf"
 readonly RUNNER_BLOB="bacacb4252911486c252bd87e34a4976b75eb4db"
 readonly OBSERVATION_LABEL="harness-validity observation — not a certified baseline value"
-readonly ENVIRONMENT_CLASS="${MANIFEX_ENVIRONMENT_CLASS:-github_hosted_ci}"
+readonly DECLARED_ENVIRONMENT_CLASS="${MANIFEX_ENVIRONMENT_CLASS:-sandbox_smoke_test}"
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)"
 readonly VALIDATOR="$REPO_ROOT/tools/validate_federation_evidence.py"
 
+# Derive CI classification from GitHub Actions runtime signals, never from the caller's label alone.
+if [[ "${GITHUB_ACTIONS:-}" == "true" && -n "${RUNNER_OS:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then
+  DETECTED_ENVIRONMENT_CLASS="github_hosted_ci"
+else
+  DETECTED_ENVIRONMENT_CLASS="sandbox_smoke_test"
+fi
+if [[ "$DECLARED_ENVIRONMENT_CLASS" != "$DETECTED_ENVIRONMENT_CLASS" ]]; then
+  echo "BLOCKED: declared environment class '$DECLARED_ENVIRONMENT_CLASS' conflicts with detected substrate '$DETECTED_ENVIRONMENT_CLASS'" >&2
+  exit 20
+fi
+readonly ENVIRONMENT_CLASS="$DETECTED_ENVIRONMENT_CLASS"
 case "$ENVIRONMENT_CLASS" in
   sandbox_smoke_test|github_hosted_ci) ;;
   controlled_host) echo "BLOCKED: controlled_host requires separately reviewed decision record support" >&2; exit 20 ;;
-  *) echo "BLOCKED: invalid environment class: $ENVIRONMENT_CLASS" >&2; exit 20 ;;
+  *) echo "BLOCKED: invalid detected environment class: $ENVIRONMENT_CLASS" >&2; exit 20 ;;
 esac
 
 if ! command -v git >/dev/null 2>&1; then echo "BLOCKED: git is required" >&2; exit 20; fi
