@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   capture:
@@ -29,6 +30,16 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install OIDC verifier dependency
+        run: python -m pip install "PyJWT[crypto]>=2.8,<3"
+
+      - name: Verify GitHub Actions OIDC identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/verify_github_oidc.py > "$RUNNER_TEMP/oidc-basis.json"
+          echo "MANIFEX_OIDC_BASIS_FILE=$RUNNER_TEMP/oidc-basis.json" >> "$GITHUB_ENV"
 
       - name: Record GitHub Actions environment
         run: |
