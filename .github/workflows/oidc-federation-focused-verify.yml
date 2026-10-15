@@ -16,6 +16,7 @@
 #   - Synthetic fixture only — never represented as a real federation execution.
 #   - Federation qualification / independent verification remain NOT_MEASURED.
 #   - The OIDC token itself is never written to logs or uploaded artifacts.
+#   - OIDC outcome is classified only from captured diagnostics.
 #
 # Cleanup:
 #   After artifacts are downloaded and reviewed, remove this file and the
@@ -63,8 +64,6 @@ jobs:
           echo "Triggering commit: ${{ github.sha }}"
           echo "Target commit under test: $TARGET_SHA"
 
-      # Checkout the triggering commit only long enough to obtain the helper
-      # and to have a workspace. The code under test is checked out separately.
       - name: Checkout triggering commit (workspace)
         uses: actions/checkout@v4
         with:
@@ -112,23 +111,14 @@ jobs:
             echo "run_attempt=${{ github.run_attempt }}"
           } > results/run-metadata.txt
 
-      # ------------------------------------------------------------------
-      # OIDC verifier — real token, real claims, no pin weakening
-      # The token value itself is never written to any file or log.
-      # ------------------------------------------------------------------
       - name: Run OIDC verifier against tested commit (real token)
         id: oidc
         continue-on-error: true
         working-directory: tested-commit
         env:
           GITHUB_ACTIONS: "true"
-          # ACTIONS_ID_TOKEN_REQUEST_URL and ACTIONS_ID_TOKEN_REQUEST_TOKEN
-          # are supplied by the runner when id-token: write is granted.
         run: |
           set +e
-          # Run from the isolated tested-commit tree so the exact patched
-          # verifier is executed. Redirect only process streams; never echo
-          # the token or request-token values.
           python tools/verify_github_oidc.py \
             > ../evidence/oidc/verifier.stdout.log \
             2> ../evidence/oidc/verifier.stderr.log
@@ -143,16 +133,11 @@ jobs:
           } > ../evidence/oidc/summary.txt
           exit 0
 
-      # ------------------------------------------------------------------
-      # Evidence validator — independent of OIDC outcome
-      # ------------------------------------------------------------------
       - name: Build controlled evidence package and run validator
         id: validator
         continue-on-error: true
         run: |
           set +e
-          # Helper lives on the triggering commit; validator binary comes
-          # from the isolated tested-commit tree.
           python .github/workflows/_focused_verify_helper.py \
             --validator-path tested-commit/tools/validate_federation_evidence.py \
             --output-dir evidence/validator \
@@ -169,9 +154,11 @@ jobs:
         if: always()
         run: |
           python - <<'PY'
-          import json, os, pathlib
+          import json, os, pathlib, re
           root = pathlib.Path("results")
           oidc_ec = pathlib.Path("evidence/oidc/verifier.exit-code.txt")
+          oidc_err = pathlib.Path("evidence/oidc/verifier.stderr.log")
+          oidc_out = pathlib.Path("evidence/oidc/verifier.stdout.log")
           val_ec  = pathlib.Path("evidence/validator/helper.exit-code.txt")
           meta = {}
           meta_path = pathlib.Path("results/run-metadata.txt")
@@ -180,26 +167,75 @@ jobs:
                   if "=" in line:
                       k, v = line.split("=", 1)
                       meta[k.strip()] = v.strip()
+
+          oidc_exit = int(oidc_ec.read_text().strip()) if oidc_ec.exists() else None
+          oidc_stderr = oidc_err.read_text(encoding="utf-8", errors="replace") if oidc_err.exists() else ""
+
+          oidc_class = "NOT_MEASURED"
+          oidc_cause = None
+          if oidc_exit is None:
+              oidc_class = "NOT_MEASURED"
+              oidc_cause = "exit code file missing"
+          elif oidc_exit == 0:
+              oidc_class = "ACCEPTED"
+              oidc_cause = "verifier returned success"
+          else:
+              patterns = [
+                  (r"OIDC claim mismatch for ref", "identity_claim_mismatch:ref"),
+                  (r"OIDC claim mismatch for workflow_ref", "identity_claim_mismatch:workflow_ref"),
+                  (r"OIDC claim mismatch for repository", "identity_claim_mismatch:repository"),
+                  (r"OIDC claim mismatch for", "identity_claim_mismatch"),
+                  (r"unexpected OIDC request endpoint", "request_endpoint_rejected"),
+                  (r"OIDC request environment is unavailable", "oidc_env_unavailable"),
+                  (r"GITHUB_ACTIONS is not true", "not_github_actions"),
+                  (r"token retrieval or cryptographic validation failed", "token_or_crypto_failure"),
+                  (r"OIDC_VERIFICATION_FAILED", "verification_failed_generic"),
+              ]
+              matched = None
+              for pat, label in patterns:
+                  if re.search(pat, oidc_stderr):
+                      matched = label
+                      break
+              if matched and matched.startswith("identity_claim_mismatch"):
+                  oidc_class = "POLICY_REJECTION_OBSERVED"
+                  oidc_cause = matched
+              elif matched:
+                  oidc_class = "FAILURE_OTHER"
+                  oidc_cause = matched
+              else:
+                  oidc_class = "NOT_MEASURED"
+                  oidc_cause = "nonzero exit without recognized diagnostic"
+
           summary = {
               "triggering_sha": meta.get("triggering_sha") or os.environ.get("GITHUB_SHA"),
               "tested_sha": meta.get("tested_sha") or os.environ.get("TARGET_SHA"),
               "workflow_run_id": os.environ.get("GITHUB_RUN_ID"),
               "workflow_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
-              "oidc_verifier_exit_code": int(oidc_ec.read_text().strip()) if oidc_ec.exists() else None,
+              "oidc_verifier_exit_code": oidc_exit,
+              "oidc_outcome_class": oidc_class,
+              "oidc_outcome_cause": oidc_cause,
               "validator_helper_exit_code": int(val_ec.read_text().strip()) if val_ec.exists() else None,
               "meaning": (
                   "Focused-branch runtime verification of the two patched tools only. "
                   "OIDC identity pins were not weakened. "
-                  "Synthetic fixture used for validator. "
+                  "OIDC outcome is classified only from captured diagnostics; "
+                  "a nonzero exit is not assumed to be a policy rejection. "
+                  "Synthetic fixture used for validator — predetermined pin fields "
+                  "inside the fixture are not independent evidence. "
                   "Federation qualification and independent verification remain NOT_MEASURED."
               ),
               "classifications": {
                   "local_adversarial_cases": "12/12 passed (prior phase)",
-                  "focused_branch_runtime_oidc": "executed — see exit code (policy rejection expected under current pins)",
-                  "focused_branch_runtime_validator": "executed against synthetic package",
+                  "focused_branch_runtime_oidc": oidc_class,
+                  "focused_branch_runtime_validator": "executed against synthetic package (see validator exit code)",
                   "real_federation_execution": "not established",
                   "federation_qualification": "NOT_MEASURED",
                   "independent_verification": "NOT_MEASURED",
+              },
+              "synthetic_fixture_limits": {
+                  "source_blob_checks": "predetermined in fixture; not independently executed",
+                  "commit_ancestry": "predetermined in fixture; not independently verified",
+                  "validator_pass_means": "schema + inventory digest checks only",
               },
           }
           root.mkdir(parents=True, exist_ok=True)
