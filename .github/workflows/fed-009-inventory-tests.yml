@@ -1,9 +1,9 @@
-name: FED-009 inventory hash regression tests
+name: FED-010 inventory completeness regression tests
 
 on:
   push:
     branches:
-      - fix/fed-009-recompute-inventory-hashes
+      - fix/fed-010-inventory-completeness
     paths:
       - "tools/validate_federation_evidence.py"
       - "tests/test_validate_federation_inventory.py"
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout repair branch
+      - name: Checkout FED-010 branch
         uses: actions/checkout@v4
         with:
           ref: fix/fed-009-recompute-inventory-hashes
