@@ -65,8 +65,8 @@ def main() -> int:
     metadata = json.loads((root / "capture-metadata.json").read_text(encoding="utf-8"))
     require(metadata.get("runner_commit") == RUNNER_COMMIT, "capture metadata runner commit mismatch")
     require(metadata.get("baseline_commit") == BASELINE_COMMIT, "capture metadata baseline commit mismatch")
-    require(metadata.get("sandbox_label") == "harness-validity observation — not a certified baseline value",
-            "sandbox label missing or altered")
+    require(metadata.get("observation_label") == "harness-validity observation — not a certified baseline value",
+            "observation label missing or altered")
 
     report = json.loads(json_reports[0].read_text(encoding="utf-8"))
     require(report.get("artifact_type") == "MANIFEX-MILLENNIUM-FEDERATION-BASELINE-REPORT-001",
@@ -120,7 +120,7 @@ def main() -> int:
     for line in inventory_lines:
         require(re.fullmatch(r"[0-9a-f]{64}  .+", line) is not None,
                 f"malformed inventory line: {line!r}")
-    inventory_names = {line.split("  ", 1)[1] for line in inventory_lines}
+    inventory_names = {line.split("  ", 1)[1].removeprefix("./") for line in inventory_lines}
     for name in [json_reports[0].name, md_reports[0].name, *required_capture[:-1]]:
         require(name in inventory_names, f"artifact missing from hash inventory: {name}")
 
