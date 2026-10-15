@@ -1,15 +1,21 @@
-name: KCN-AKIIS Capability Benchmark v1 Execution
+name: KCN-AKIIS Raw Output Capture (evidence collection) v1
 
 on:
   push:
     branches:
       - Python-3
+  workflow_dispatch:
+    inputs:
+      implementation_commit:
+        description: 'Optional commit SHA to test instead of the triggering commit'
+        required: false
+        default: ''
 
 permissions:
   contents: read
 
 jobs:
-  execute-capability-benchmark-v1:
+  execute-raw-output-capture-v1:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout benchmark runner repository
@@ -23,11 +29,11 @@ jobs:
           path: frozen-benchmark
           fetch-depth: 1
 
-      - name: Checkout exact KCN implementation under test
+      - name: Checkout KCN implementation under test
         uses: actions/checkout@v4
         with:
           repository: Evank253/Global-Intelligence
-          ref: d748a7f4552fd7038e96a5366f6979d8a762dbc3
+          ref: ${{ github.event.inputs.implementation_commit || github.sha }}
           path: kcn-under-test
           fetch-depth: 1
 
@@ -37,13 +43,18 @@ jobs:
           sha256sum frozen-benchmark/capability-benchmark-v1/tasks/*.jsonl
 
       - name: Execute frozen 140-task corpus
+        env:
+          IMPLEMENTATION_COMMIT: ${{ github.event.inputs.implementation_commit || github.sha }}
         run: |
           python - <<'PY'
           import hashlib
           import json
           import pathlib
           import sys
+          import os
           from datetime import datetime, timezone
+
+          impl_commit = os.environ.get("IMPLEMENTATION_COMMIT")
 
           sys.path.insert(0, str(pathlib.Path("kcn-under-test").resolve()))
           from kcn_intelligence_os import KCNIntelligenceOS
@@ -89,7 +100,7 @@ jobs:
                       "domain": task["domain"],
                       "task_type": task["type"],
                       "execution_index": i,
-                      "implementation_commit": "d748a7f4552fd7038e96a5366f6979d8a762dbc3",
+                      "implementation_commit": impl_commit,
                       "started_at": started,
                       "finished_at": finished,
                       "status": status,
@@ -108,7 +119,7 @@ jobs:
               "execution_started": True,
               "execution_started_at": run_started,
               "implementation_repository": "Evank253/Global-Intelligence",
-              "implementation_commit": "d748a7f4552fd7038e96a5366f6979d8a762dbc3",
+              "implementation_commit": impl_commit,
               "benchmark_repository": "Evank253/Super-intelligence-under-human-authority-",
               "benchmark_ref": "capability-benchmark-v1-freeze",
               "model_facing_paths_only": True,
