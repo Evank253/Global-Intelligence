@@ -2,6 +2,7 @@
 """Annotate a pinned runner report with capture-side substrate classification."""
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -18,6 +19,20 @@ def main() -> int:
         return 2
     if environment_class == "controlled_host":
         print("controlled_host requires an accepted decision record; annotation tool does not authorize it", file=sys.stderr)
+        return 2
+    # Independently corroborate the caller's declaration against runtime signals.
+    is_github_actions = (
+        os.environ.get("GITHUB_ACTIONS") == "true"
+        and bool(os.environ.get("RUNNER_OS"))
+        and bool(os.environ.get("GITHUB_RUN_ID"))
+    )
+    detected = "github_hosted_ci" if is_github_actions else "sandbox_smoke_test"
+    if environment_class != detected:
+        print(
+            f"environment_class mismatch: declared={environment_class}, detected={detected}; "
+            "GITHUB_ACTIONS=true, RUNNER_OS, and GITHUB_RUN_ID are required for github_hosted_ci",
+            file=sys.stderr,
+        )
         return 2
     reports = sorted(root.glob("federation-baseline-*.json"))
     if len(reports) != 1:
