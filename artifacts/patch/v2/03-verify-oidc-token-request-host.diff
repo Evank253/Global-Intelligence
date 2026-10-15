@@ -1,0 +1,18 @@
+*** Begin Patch
+*** Add File: artifacts/patch/v2/03-verify-oidc-token-request-host.diff
++*** Begin Patch
++*** Update File: tools/verify_github_oidc.py
++@@
++ from jwt import PyJWKClient
++
++ ISSUER = "https://token.actions.githubusercontent.com"
++ # GitHub serves the token REQUEST endpoint from a DIFFERENT subdomain than
++ # the issuer that signs the resulting token: token.* issues the token,
++ # pipelines.* serves the request. Do not derive one from the other; they are
++ # siblings, not equal.
++ TOKEN_REQUEST_HOST = "pipelines.actions.githubusercontent.com"
++ AUDIENCE = "https://github.com/Evank253/Global-Intelligence"
++ EXPECTED_REPOSITORY = "Evank253/Global-Intelligence"
++*** End Patch
++
+*** End Patch
