@@ -36,10 +36,6 @@ def main() -> int:
         fail("GitHub Actions OIDC request environment is unavailable")
 
     parsed = urllib.parse.urlsplit(request_url)
-    # DEBUG: print parsed components before the gate so a failure names the
-    # actual endpoint instead of a generic message. Redact nothing sensitive
-    # here - this is a public hostname/scheme pair.
-    print(f"OIDC_DEBUG: scheme={parsed.scheme!r} hostname={parsed.hostname!r} netloc={parsed.netloc!r}", file=sys.stderr)
     # Security property: https + the actions.githubusercontent.com domain
     # family. GitHub has used token.actions, pipelines.actions, and regional
     # run-actions-<region>.actions hosts across runner versions; a fixed set
