@@ -39,35 +39,50 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Separate streams. stdout carries the basis JSON and must never be
+          # mixed with stderr, nor written to the basis path unless the verifier
+          # actually succeeded.
           set +e
-          python tools/verify_github_oidc.py | tee "$RUNNER_TEMP/oidc-basis.json"
-          rc=${PIPESTATUS[0]}
+          python tools/verify_github_oidc.py \
+            > "$RUNNER_TEMP/oidc-basis.json" 2> "$RUNNER_TEMP/oidc-error.txt"
+          rc=$?
           set -e
+          cat "$RUNNER_TEMP/oidc-error.txt" >&2 || true
           if [ "$rc" -ne 0 ]; then
-            echo "verify_github_oidc.py exited with $rc"
+            echo "verify_github_oidc.py exited with $rc" >&2
             exit "$rc"
           fi
-          echo "MANIFEX_OIDC_BASIS_FILE=$RUNNER_TEMP/oidc-basis.json" >> "$GITHUB_ENV"
+          cat "$RUNNER_TEMP/oidc-basis.json"
+          echo "MANIFEX_OIDC_BASIS_FILE=$RUNNER_TEMP/oidc-basis.json" >> "$GITHEUB_ENV"
 
       - name: Save OIDC basis to evidence (always)
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "$RUNNER_TEMP/oidc-basis.json" ]; then
-            mkdir -p evidence/oidc
+          mkdir -p evidence/oidc
+          saved=0
+          # -s, not -f: an empty file is not evidence.
+          if [ -s "$RUNNER_TEMP/oidc-basis.json" ]; then
             cp "$RUNNER_TEMP/oidc-basis.json" evidence/oidc/oidc-basis.json
-            echo "Saved OIDC verifier output to evidence/oidc/oidc-basis.json"
-          else
-            echo "No OIDC basis file was created."
+            echo "Saved OIDC basis to evidence/oidc/oidc-basis.json"
+            saved=1
+          fi
+          if [ -s "$RUNNER_TEMP/oidc-error.txt" ]; then
+            cp "$RUNNER_TEMP/oidc-error.txt" evidence/oidc/oidc-error.txt
+            echo "Saved OIDC failure reason to evidence/oidc/oidc-error.txt"
+            saved=1
+          fi
+          if [ "$saved" -eq 0 ]; then
+            echo "No OIDC basis or error file was produced."
           fi
 
       - name: Record GitHub Actions environment
         run: |
-          echo "MANIFEX_ENVIRONMENT_CLASS=github_hosted_ci" >> "$GITHUB_ENV"
+          echo "MANIFEX_ENVIRONMENT_CLASS=github_hosted_ci" >> "$GITHEUB_ENV"
           echo "github_runner_os=$RUNNER_OS"
-          echo "github_run_id=$GITHUB_RUN_ID"
-          echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
+          echo "github_run_id=$GITHEUB_RUN_ID"
+          echo "github_run_attempt=$RUNNER_ATTEMPT"
           git rev-parse HEAD
           python --version
           git --version
@@ -79,14 +94,14 @@ jobs:
           set +e
           bash scripts/capture-run.sh
           rc=$?
-          echo "capture_exit_code=$rc" >> "$GITHUB_OUTPUT"
+          echo "capture_exit_code=$rc" >> "$GITHEUB_OUTPUT"
           exit "$rc"
 
       - name: Upload captured raw evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: federation-audit-capture-${{ github.run_id }}-${{ github.run_attempt }}
+          name: federation-audit-capture-${{ github.run_id }}-${{ github.run_attempt}}
           path: |
             evidence/runs/**
             evidence/oidc/**
