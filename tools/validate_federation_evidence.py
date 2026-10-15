@@ -22,6 +22,7 @@ SOURCE_BLOBS = {
     "kcn_v6/federation_layer/__init__.py": "256132d2e420c38cbf7bc9c6e63448579cfaaa29",
 }
 STATUSES = {"PASS", "FAIL", "NOT_MEASURED", "BLOCKED"}
+ENVIRONMENT_CLASSES = {"sandbox_smoke_test", "github_hosted_ci", "controlled_host"}
 MODES = {"BEHAVIORAL_EXECUTION", "SOURCE_INSPECTION", "TABLE_DERIVATION", "BLOCKED"}
 EXPECTED_IDS = (
     [f"T-AUTH-{i:03}" for i in range(1, 8)]
@@ -73,8 +74,28 @@ def main() -> int:
             "unexpected report artifact_type")
     require(report.get("status") == "OBSERVATION_ONLY_NOT_INDEPENDENT_VERIFICATION",
             "report status missing or unexpected")
-    require(report.get("independent_verification") == "NOT_MEASURED",
-            "independent_verification must remain NOT_MEASURED")
+    environment_class = report.get("environment_class")
+    require(environment_class in ENVIRONMENT_CLASSES,
+            "environment_class is required and must be one of: sandbox_smoke_test, github_hosted_ci, controlled_host")
+    require("sandbox_validity_label" not in report,
+            "sandbox_validity_label is retired; use environment_class only")
+    if environment_class in {"sandbox_smoke_test", "github_hosted_ci"}:
+        require(report.get("independent_verification") == "NOT_MEASURED",
+                f"independent_verification must remain NOT_MEASURED for {environment_class}")
+        require(report.get("baseline_qualification") == "NOT_MEASURED",
+                f"baseline_qualification must remain NOT_MEASURED for {environment_class}")
+    else:
+        env = report.get("environment", {})
+        acceptance = env.get("controlled_host_decision_record", {})
+        require(isinstance(acceptance, dict), "controlled_host requires controlled_host_decision_record")
+        require(acceptance.get("auditor_accepted") is True,
+                "controlled_host decision record must document explicit auditor acceptance")
+        require(acceptance.get("accepted_before_run") is True,
+                "controlled_host decision record acceptance must predate the run")
+        require(isinstance(acceptance.get("decision_id"), str) and acceptance["decision_id"].strip(),
+                "controlled_host decision record must include decision_id")
+        require(re.fullmatch(r"[0-9a-f]{64}", str(acceptance.get("decision_record_sha256", ""))) is not None,
+                "controlled_host decision record must include a SHA-256 digest")
     baseline = report.get("baseline", {})
     require(baseline.get("pinned_commit_sha") == BASELINE_COMMIT, "baseline commit pin mismatch in report")
     require(baseline.get("executed_checkout_head_sha") == RUNNER_COMMIT,
@@ -131,8 +152,9 @@ def main() -> int:
         "track_a_rows": len(results),
         "status_counts": expected_counts,
         "execution_mode_counts": expected_modes,
-        "independent_verification": "NOT_MEASURED",
-        "baseline_qualification": "NOT_MEASURED",
+        "environment_class": environment_class,
+        "independent_verification": report.get("independent_verification"),
+        "baseline_qualification": report.get("baseline_qualification", "NOT_MEASURED"),
     }, indent=2))
     return 0
 
