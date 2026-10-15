@@ -1,0 +1,58 @@
+name: Federation audit capture (observation only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - federation-dual-track-audit
+    paths:
+      - "scripts/capture-run.sh"
+      - "tools/validate_federation_evidence.py"
+      - ".github/workflows/federation-audit-capture.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout audit branch
+        uses: actions/checkout@v4
+        with:
+          ref: federation-dual-track-audit
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record GitHub Actions environment
+        run: |
+          echo "github_runner_os=$RUNNER_OS"
+          echo "github_run_id=$GITHUB_RUN_ID"
+          echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
+          git rev-parse HEAD
+          python --version
+          git --version
+
+      - name: Capture pinned real runner and validate package
+        id: capture
+        shell: bash
+        run: |
+          set +e
+          bash scripts/capture-run.sh
+          rc=$?
+          echo "capture_exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+
+      - name: Upload captured raw evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: federation-audit-capture-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/runs/**
+          if-no-files-found: warn
+          retention-days: 90
