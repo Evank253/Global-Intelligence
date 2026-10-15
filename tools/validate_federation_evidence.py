@@ -66,6 +66,8 @@ def main() -> int:
     metadata = json.loads((root / "capture-metadata.json").read_text(encoding="utf-8"))
     require(metadata.get("runner_commit") == RUNNER_COMMIT, "capture metadata runner commit mismatch")
     require(metadata.get("baseline_commit") == BASELINE_COMMIT, "capture metadata baseline commit mismatch")
+    require(metadata.get("environment_class") in ENVIRONMENT_CLASSES,
+            "capture metadata environment_class is missing or invalid")
     require(metadata.get("observation_label") == "harness-validity observation — not a certified baseline value",
             "observation label missing or altered")
 
@@ -79,6 +81,8 @@ def main() -> int:
             "environment_class is required and must be one of: sandbox_smoke_test, github_hosted_ci, controlled_host")
     require("sandbox_validity_label" not in report,
             "sandbox_validity_label is retired; use environment_class only")
+    require(metadata.get("environment_class") == environment_class,
+            "report and capture metadata environment_class mismatch")
     if environment_class in {"sandbox_smoke_test", "github_hosted_ci"}:
         require(report.get("independent_verification") == "NOT_MEASURED",
                 f"independent_verification must remain NOT_MEASURED for {environment_class}")
