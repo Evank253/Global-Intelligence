@@ -26,17 +26,20 @@ if [[ "$DECLARED_ENVIRONMENT_CLASS" != "$DETECTED_ENVIRONMENT_CLASS" ]]; then
 fi
 readonly ENVIRONMENT_CLASS="$DETECTED_ENVIRONMENT_CLASS"
 if [[ "$ENVIRONMENT_CLASS" == "github_hosted_ci" ]]; then
-  OIDC_BASIS_FILE="${MANIFEX_OIDC_BASIS_FILE:-}"
-  if [[ -z "$OIDC_BASIS_FILE" || ! -f "$OIDC_BASIS_FILE" ]]; then
-    echo "BLOCKED: github_hosted_ci requires verified GitHub OIDC basis" >&2
+  # Never trust a caller-supplied JSON file that merely claims oidc_verified=true.
+  # Obtain and cryptographically verify a fresh token in this process invocation.
+  OIDC_BASIS_FILE="${MANIFEX_OIDC_BASIS_FILE:-$REPO_ROOT/.oidc-basis.json}"
+  if ! python3 "$REPO_ROOT/tools/verify_github_oidc.py" > "$OIDC_BASIS_FILE"; then
+    echo "BLOCKED: live GitHub Actions OIDC verification failed" >&2
     exit 20
   fi
+  export MANIFEX_OIDC_BASIS_FILE="$OIDC_BASIS_FILE"
   python3 - "$OIDC_BASIS_FILE" <<'PY_OIDC'
 import json, os, sys
 try:
     basis = json.load(open(sys.argv[1], encoding="utf-8"))
 except Exception:
-    raise SystemExit("BLOCKED: OIDC basis is not valid JSON")
+    raise SystemExit("BLOCKED: OIDC verifier output is not valid JSON")
 expected = {
     "basis_id": "ENVIRONMENT-CLASS-BASIS-002",
     "detected_class": "github_hosted_ci",
@@ -49,7 +52,7 @@ expected = {
 }
 for key, value in expected.items():
     if not value or basis.get(key) != value:
-        raise SystemExit(f"BLOCKED: OIDC basis mismatch for {key}")
+        raise SystemExit(f"BLOCKED: live OIDC basis mismatch for {key}")
 PY_OIDC
 fi
 case "$ENVIRONMENT_CLASS" in
