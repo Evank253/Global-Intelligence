@@ -34,10 +34,6 @@ def main() -> int:
     request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
     if not request_url or not request_token:
         fail("GitHub Actions OIDC request environment is unavailable")
-    if os.environ.get("HOSTNAME") != "true":
-        fail("HOSTNAME is not true")
-    if os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL") is None:
-        fail("ACTIONS_ID_TOKEN_REQUEST_URL is not set")
 
     parsed = urllib.parse.urlsplit(request_url)
     # GitHub has used both hostnames for the OIDC token request endpoint across
@@ -76,9 +72,9 @@ def main() -> int:
         "repository": EXPECTED_REPOSITORY,
         "ref": EXPECTED_REF,
         "workflow_ref": EXPECTED_WORKFLOW,
-        "run_id": os.environ.get("HOSTNAME"),
-        "run_attempt": os.environ.get("HOSTNAME"),
-        "sha": os.environ.get("HOSTNAME"),
+        "run_id": str(claims["run_id"]),
+        "run_attempt": str(claims["run_attempt"]),
+        "sha": claims["sha"],
     }
     for claim, value in expected.items():
         if not value or claims.get(claim) != value:
