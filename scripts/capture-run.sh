@@ -211,10 +211,13 @@ if [[ "$RUNNER_RC" -ne 0 ]]; then
 fi
 
 set +e
-python3 "$VALIDATOR" "$OUT" >"$OUT/validator.stdout.log" 2>"$OUT/validator.stderr.log"
+python3 "$VALIDATOR" "$OUT" >"$WORK/validator.stdout.log" 2>"$WORK/validator.stderr.log"
 VALIDATOR_RC=$?
 set -e
-# Add validator outputs to the inventory, now that validation has completed.
+# Keep validator output outside the directory during validation so completeness checks
+# cover all evidence files that exist at that point. Add logs and refresh inventory after.
+cp "$WORK/validator.stdout.log" "$OUT/validator.stdout.log"
+cp "$WORK/validator.stderr.log" "$OUT/validator.stderr.log"
 (
   cd "$OUT" &&
   find . -type f ! -name inventory.sha256 -print0 |
