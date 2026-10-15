@@ -120,9 +120,29 @@ fi
 MANIFEX_ENVIRONMENT_CLASS="$ENVIRONMENT_CLASS" python3 - "$OUT/capture-metadata.json" "$RUNNER_COMMIT" "$BASELINE_COMMIT" "$SPEC_COMMIT" "$OBSERVATION_LABEL" "$ACTUAL_HEAD" "$ACTUAL_RUNNER_BLOB" "$RUNNER_RC" <<'PY'
 import json, os, sys
 path, runner, baseline, spec, label, head, blob, rc = sys.argv[1:]
+environment_class = os.environ.get("MANIFEX_ENVIRONMENT_CLASS", "sandbox_smoke_test")
+is_github_actions = (
+    os.environ.get("GITHUB_ACTIONS") == "true"
+    and bool(os.environ.get("RUNNER_OS"))
+    and bool(os.environ.get("GITHUB_RUN_ID"))
+)
+detected_class = "github_hosted_ci" if is_github_actions else "sandbox_smoke_test"
+environment_class_basis = {
+    "basis_id": "ENVIRONMENT-CLASS-BASIS-001",
+    "detection_rule": "github_actions_true_and_runner_os_and_run_id_present",
+    "github_actions": os.environ.get("GITHUB_ACTIONS") == "true",
+    "runner_os": os.environ.get("RUNNER_OS") or None,
+    "github_run_id": os.environ.get("GITHUB_RUN_ID") or None,
+    "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT") or None,
+    "detected_class": detected_class,
+    "cryptographic_attestation": False,
+}
+if environment_class != detected_class:
+    raise SystemExit("capture metadata environment class conflicts with detected runtime signals")
 payload = {
     "capture_type": "PINNED_RUNNER_CAPTURE_001",
-    "environment_class": os.environ.get("MANIFEX_ENVIRONMENT_CLASS", "github_hosted_ci"),
+    "environment_class": environment_class,
+    "environment_class_basis": environment_class_basis,
     "runner_commit": runner,
     "baseline_commit": baseline,
     "spec_commit": spec,
