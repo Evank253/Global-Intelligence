@@ -68,6 +68,14 @@ def main() -> int:
     require(metadata.get("baseline_commit") == BASELINE_COMMIT, "capture metadata baseline commit mismatch")
     require(metadata.get("environment_class") in ENVIRONMENT_CLASSES,
             "capture metadata environment_class is missing or invalid")
+    basis = metadata.get("environment_class_basis")
+    require(isinstance(basis, dict), "capture metadata environment_class_basis is missing")
+    require(basis.get("basis_id") == "ENVIRONMENT-CLASS-BASIS-001",
+            "unknown or missing environment classification basis")
+    require(basis.get("detected_class") == metadata.get("environment_class"),
+            "capture metadata class does not match its classification basis")
+    require(basis.get("cryptographic_attestation") is False,
+            "environment signals must not be represented as cryptographic attestation")
     require(metadata.get("observation_label") == "harness-validity observation — not a certified baseline value",
             "observation label missing or altered")
 
@@ -83,6 +91,11 @@ def main() -> int:
             "sandbox_validity_label is retired; use environment_class only")
     require(metadata.get("environment_class") == environment_class,
             "report and capture metadata environment_class mismatch")
+    report_basis = report.get("environment_class_basis")
+    require(isinstance(report_basis, dict), "report environment_class_basis is missing")
+    require(report_basis == basis, "report and capture metadata classification basis mismatch")
+    require(report_basis.get("detected_class") == environment_class,
+            "report environment class does not match its classification basis")
     if environment_class in {"sandbox_smoke_test", "github_hosted_ci"}:
         require(report.get("independent_verification") == "NOT_MEASURED",
                 f"independent_verification must remain NOT_MEASURED for {environment_class}")
