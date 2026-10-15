@@ -39,8 +39,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python tools/verify_github_oidc.py > "$RUNNER_TEMP/oidc-basis.json"
+          set +e
+          python tools/verify_github_oidc.py | tee "$RUNNER_TEMP/oidc-basis.json"
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            echo "verify_github_oidc.py exited with $rc"
+            exit "$rc"
+          fi
           echo "MANIFEX_OIDC_BASIS_FILE=$RUNNER_TEMP/oidc-basis.json" >> "$GITHUB_ENV"
+
+      - name: Save OIDC basis to evidence (always)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "$RUNNER_TEMP/oidc-basis.json" ]; then
+            mkdir -p evidence/oidc
+            cp "$RUNNER_TEMP/oidc-basis.json" evidence/oidc/oidc-basis.json
+            echo "Saved OIDC verifier output to evidence/oidc/oidc-basis.json"
+          else
+            echo "No OIDC basis file was created."
+          fi
 
       - name: Record GitHub Actions environment
         run: |
@@ -67,6 +87,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: federation-audit-capture-${{ github.run_id }}-${{ github.run_attempt }}
-          path: evidence/runs/**
+          path: |
+            evidence/runs/**
+            evidence/oidc/**
           if-no-files-found: warn
           retention-days: 90
