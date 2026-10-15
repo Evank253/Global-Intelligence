@@ -17,6 +17,7 @@
 #   - Federation qualification / independent verification remain NOT_MEASURED.
 #   - The OIDC token itself is never written to logs or uploaded artifacts.
 #   - OIDC outcome is classified only from captured diagnostics.
+#   - Only expected ref / workflow_ref mismatches are POLICY_REJECTION_OBSERVED.
 #
 # Cleanup:
 #   After artifacts are downloaded and reviewed, remove this file and the
@@ -180,11 +181,17 @@ jobs:
               oidc_class = "ACCEPTED"
               oidc_cause = "verifier returned success"
           else:
+              # Only expected ref / workflow_ref mismatches count as the
+              # focused-branch identity-policy rejection. Other claim
+              # mismatches and infrastructure failures are FAILURE_OTHER.
               patterns = [
-                  (r"OIDC claim mismatch for ref", "identity_claim_mismatch:ref"),
-                  (r"OIDC claim mismatch for workflow_ref", "identity_claim_mismatch:workflow_ref"),
-                  (r"OIDC claim mismatch for repository", "identity_claim_mismatch:repository"),
-                  (r"OIDC claim mismatch for", "identity_claim_mismatch"),
+                  (r"OIDC claim mismatch for ref\b", "identity_claim_mismatch:ref"),
+                  (r"OIDC claim mismatch for workflow_ref\b", "identity_claim_mismatch:workflow_ref"),
+                  (r"OIDC claim mismatch for repository\b", "identity_claim_mismatch:repository"),
+                  (r"OIDC claim mismatch for sha\b", "identity_claim_mismatch:sha"),
+                  (r"OIDC claim mismatch for run_id\b", "identity_claim_mismatch:run_id"),
+                  (r"OIDC claim mismatch for run_attempt\b", "identity_claim_mismatch:run_attempt"),
+                  (r"OIDC claim mismatch for", "identity_claim_mismatch:other"),
                   (r"unexpected OIDC request endpoint", "request_endpoint_rejected"),
                   (r"OIDC request environment is unavailable", "oidc_env_unavailable"),
                   (r"GITHUB_ACTIONS is not true", "not_github_actions"),
@@ -196,7 +203,11 @@ jobs:
                   if re.search(pat, oidc_stderr):
                       matched = label
                       break
-              if matched and matched.startswith("identity_claim_mismatch"):
+              policy_labels = {
+                  "identity_claim_mismatch:ref",
+                  "identity_claim_mismatch:workflow_ref",
+              }
+              if matched in policy_labels:
                   oidc_class = "POLICY_REJECTION_OBSERVED"
                   oidc_cause = matched
               elif matched:
@@ -220,6 +231,7 @@ jobs:
                   "OIDC identity pins were not weakened. "
                   "OIDC outcome is classified only from captured diagnostics; "
                   "a nonzero exit is not assumed to be a policy rejection. "
+                  "Only expected ref/workflow_ref mismatches are POLICY_REJECTION_OBSERVED. "
                   "Synthetic fixture used for validator — predetermined pin fields "
                   "inside the fixture are not independent evidence. "
                   "Federation qualification and independent verification remain NOT_MEASURED."
