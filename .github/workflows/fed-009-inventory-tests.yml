@@ -20,7 +20,7 @@ jobs:
       - name: Checkout FED-010 branch
         uses: actions/checkout@v4
         with:
-          ref: fix/fed-009-recompute-inventory-hashes
+          ref: fix/fed-010-inventory-completeness
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
