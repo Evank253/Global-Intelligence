@@ -44,8 +44,7 @@ def main() -> int:
     # family. GitHub has used token.actions, pipelines.actions, and regional
     # run-actions-<region>.actions hosts across runner versions; a fixed set
     # misses the regional ones. First label is the variable part.
-    parts = (parsed.hostname or "").split(".")
-    if parsed.scheme != "https" or len(parts) < 3 or parts[-2:] != ["actions", "githubusercontent"] or parts[0] == "":
+    if parsed.scheme != "https" or not (parsed.hostname or "").endswith(".actions.githubusercontent.com"):
         fail("unexpected OIDC request endpoint")
     query = urllib.parse.parse_qs(parsed.query)
     query["audience"] = [AUDIENCE]
