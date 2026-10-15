@@ -38,8 +38,8 @@ def main() -> int:
     request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
     if not request_url or not request_token:
         fail("GitHub Actions OIDC request environment is unavailable")
-    if os.environ.get("GITHUE_ACTIONS") != "true":
-        fail("GITHUE_ACTIONS is not true")
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        fail("GITHUB_ACTIONS is not true")
 
     parsed = urllib.parse.urlsplit(request_url)
     if parsed.scheme != "https" or parsed.hostname != TOKEN_REQUEST_HOST:
@@ -71,9 +71,9 @@ def main() -> int:
         "repository": EXPECTED_REPOSITORY,
         "ref": EXPECTED_REF,
         "workflow_ref": EXPECTED_WORKFLOW,
-        "run_id": os.environ.get("GITHUE_RUN_ID"),
-        "run_attempt": os.environ.get("GITHUE_RUN_ATTEMPT"),
-        "sha": os.environ.get("GITHUE_SHA"),
+        "run_id": os.environ.get("GITHUB_RUN_ID"),
+        "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+        "sha": os.environ.get("GITHUB_SHA"),
     }
     for claim, value in expected.items():
         if not value or claims.get(claim) != value:

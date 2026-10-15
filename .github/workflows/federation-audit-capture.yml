@@ -53,7 +53,7 @@ jobs:
             exit "$rc"
           fi
           cat "$RUNNER_TEMP/oidc-basis.json"
-          echo "MANIFEX_OIDC_BASIS_FILE=$RUNNER_TEMP/oidc-basis.json" >> "$GITHEUB_ENV"
+          echo "MANIFEX_OIDC_BASIS_FILE=$RUNNER_TEMP/oidc-basis.json" >> "$GITHUB_ENV"
 
       - name: Save OIDC basis to evidence (always)
         if: always()
@@ -79,10 +79,10 @@ jobs:
 
       - name: Record GitHub Actions environment
         run: |
-          echo "MANIFEX_ENVIRONMENT_CLASS=github_hosted_ci" >> "$GITHEUB_ENV"
+          echo "MANIFEX_ENVIRONMENT_CLASS=github_hosted_ci" >> "$GITHUB_ENV"
           echo "github_runner_os=$RUNNER_OS"
-          echo "github_run_id=$GITHEUB_RUN_ID"
-          echo "github_run_attempt=$RUNNER_ATTEMPT"
+          echo "github_run_id=$GITHUB_RUN_ID"
+          echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
           git rev-parse HEAD
           python --version
           git --version
@@ -94,7 +94,7 @@ jobs:
           set +e
           bash scripts/capture-run.sh
           rc=$?
-          echo "capture_exit_code=$rc" >> "$GITHEUB_OUTPUT"
+          echo "capture_exit_code=$rc" >> "$GITHUB_OUTPUT"
           exit "$rc"
 
       - name: Upload captured raw evidence
