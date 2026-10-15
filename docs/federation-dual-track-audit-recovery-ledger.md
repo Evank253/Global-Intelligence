@@ -96,3 +96,19 @@ The audit branch now defines and enforces the required `report.json.environment_
 Specification: `docs/evidence-environment-class-addendum-001.md`.
 
 **Validation boundary:** The validator and capture artifacts have been updated in GitHub, but no local syntax/test run or real runner execution is claimed by this ledger entry. Until the workflow output and raw artifacts are inspected, evidence-schema validation against real output remains `NOT_PERFORMED`, independent audit remains `NOT_PERFORMED`, and baseline qualification remains `NOT_MEASURED`.
+
+
+## CI environment-label integrity correction
+
+**Recorded after diagnosis of stale CI failures and substrate misclassification risk.**
+
+The capture path now defaults the declared environment class to `sandbox_smoke_test`. It derives the expected class from runtime signals: `GITHUB_ACTIONS=true`, non-empty `RUNNER_OS`, and non-empty `GITHUB_RUN_ID` are required to classify a run as `github_hosted_ci`; otherwise the detected class is `sandbox_smoke_test`. A mismatch between the declared and detected class blocks capture. The annotator independently repeats this consistency check before modifying the report. The `controlled_host` path remains blocked.
+
+The workflow push path filter now includes `tools/annotate_environment_class.py`, so changing this hard dependency triggers capture validation.
+
+Commits:
+- Capture substrate derivation: `4cb612ec218dd4d7a52783b295a05d07cc4ab594`
+- Annotator runtime-signal corroboration: `0bfcaa7a90b8d5a0c2b247a0da639c984cf4a541`
+- Workflow path-filter correction: `a5f2e14525e1df394c916f2d6ca0c1ff4eca7d2d`
+
+**Validation boundary:** GitHub file contents were re-fetched after these writes and the relevant code/path-filter markers were confirmed. No new CI run, local test run, or new real runner execution is claimed by this entry. Runtime environment variables are corroboration signals, not cryptographic attestation against a deliberately hostile process that can forge its own environment; independent substrate verification remains required. Existing mislabeled captures must not be reclassified retroactively as genuine CI evidence merely because their report says `github_hosted_ci`. The latest CI-tested commit remains the one established by the previously supplied diagnosis until a new Actions run exercises the updated branch tip.
