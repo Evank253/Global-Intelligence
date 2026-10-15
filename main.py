@@ -4,6 +4,7 @@ Boots Kernel, executes Master Domain Orchestration, Federated Node Sync, Agent E
 """
 
 import sys
+import os
 import logging
 import json
 import time
@@ -67,8 +68,13 @@ def main():
     print(f"EXECUTING QUERY UNDER KCN v4 DISTRIBUTED NETWORK DIRECTIVES: '{sample_query}'")
     print("-" * 80)
 
+    api_key = os.environ.get("KCN_API_KEY")
+    if not api_key:
+        logger.error("KCN_API_KEY environment variable is required. Refusing to run with a hardcoded credential.")
+        sys.exit(1)
+
     start_time = time.time()
-    result = orchestrator.process_query(sample_query, context={"api_key": "key_enterprise_alpha"})
+    result = orchestrator.process_query(sample_query, context={"api_key": api_key})
     elapsed = time.time() - start_time
 
     print(f"\n[Execution Summary] Status: {result['status']} | Milestone: {result['phase_milestone']} | Time: {elapsed:.3f}s")
