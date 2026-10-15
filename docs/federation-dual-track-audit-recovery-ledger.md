@@ -58,3 +58,25 @@ These statuses are not interchangeable. In particular, missing interfaces or run
 - Human ratification: **NOT PERFORMED**
 
 Update this ledger additively as work occurs. Do not backdate events or change earlier attempt classifications to make later work appear earlier.
+
+
+## Preflight check record — frozen specification and matrix
+
+**Check date:** 2026-10-14 (current session; GitHub commit metadata reports the specification commit was created 2026-10-14 UTC)  
+**Method:** Retrieve the exact commit by SHA from the declared repository, then retrieve each target file using that exact commit SHA as the ref. Compare the returned Git object IDs with the recorded pins.  
+**Scope:** Object identity only. This is not the independent implementation/evidence audit.
+
+| Check | Expected | Retrieved | Result |
+|---|---|---|---|
+| Specification repository commit | `0fdb465382a0104ed7ae9870b0a5df4325575fbf` | `0fdb465382a0104ed7ae9870b0a5df4325575fbf` | MATCH |
+| Matrix path at pinned commit | `MANIFEX-MILLENNIUM-FEDERATION-TEST-MATRIX-001.md` | Retrieved at the exact pinned commit | MATCH |
+| Matrix Git blob SHA | `5568396eb0e39ab5c927bd80051f701aa3bd3aeb` | `5568396eb0e39ab5c927bd80051f701aa3bd3aeb` | MATCH |
+| Specification file at pinned commit | `MANIFEX-MILLENNIUM-FEDERATION-VERIFICATION-SPECIFICATION-001.md` | Retrieved at the exact pinned commit; blob `a1d16c557b447c60ea40575f94d202721800b781` | Retrieved; no prior spec-file blob pin was declared for comparison |
+
+References:
+- Specification commit: https://github.com/Evank253/Manifex-millennium-/commit/0fdb465382a0104ed7ae9870b0a5df4325575fbf
+- Matrix at pinned commit: https://github.com/Evank253/Manifex-millennium-/blob/0fdb465382a0104ed7ae9870b0a5df4325575fbf/MANIFEX-MILLENNIUM-FEDERATION-TEST-MATRIX-001.md
+- Specification at pinned commit: https://github.com/Evank253/Manifex-millennium-/blob/0fdb465382a0104ed7ae9870b0a5df4325575fbf/MANIFEX-MILLENNIUM-FEDERATION-VERIFICATION-SPECIFICATION-001.md
+
+**Outcome:** The specified commit exists at the expected SHA, and the matrix file's retrieved Git blob SHA matches the expected pin. This preflight check did not detect a mismatch in either of the two requested pins. No federation tests were run as part of this check. This retrieval verifies GitHub object identity; it is not a substitute for an independently controlled reviewer or execution environment.
+
