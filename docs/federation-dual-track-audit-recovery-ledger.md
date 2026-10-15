@@ -112,3 +112,12 @@ Commits:
 - Workflow path-filter correction: `a5f2e14525e1df394c916f2d6ca0c1ff4eca7d2d`
 
 **Validation boundary:** GitHub file contents were re-fetched after these writes and the relevant code/path-filter markers were confirmed. No new CI run, local test run, or new real runner execution is claimed by this entry. Runtime environment variables are corroboration signals, not cryptographic attestation against a deliberately hostile process that can forge its own environment; independent substrate verification remains required. Existing mislabeled captures must not be reclassified retroactively as genuine CI evidence merely because their report says `github_hosted_ci`. The latest CI-tested commit remains the one established by the previously supplied diagnosis until a new Actions run exercises the updated branch tip.
+
+
+## Environment-class basis-field wiring
+
+The capture metadata writer now persists `environment_class_basis` alongside `environment_class`, using the same basis identifier, detection rule, GitHub Actions signals, detected class, and explicit `cryptographic_attestation: false` value that the annotator writes into the runner report. The validator requires the report and capture-metadata basis objects to match exactly. This closes the data-flow gap between defining the basis, recording it, and validating it.
+
+Commit: `811bc56b01e2a3275dcc4a72f4ce6e9acfeef0bb`.
+
+**Important:** this is signal recording and consistency enforcement, not OIDC attestation. GitHub Actions environment variables remain forgeable by a process that controls its environment. OIDC-backed identity/attestation is not implemented here. No new CI result or local test result is claimed; the latest commit needs to be exercised by the workflow before the change can be marked validated.
