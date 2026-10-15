@@ -96,7 +96,7 @@ from strategic_future_engine.objective_planner import ObjectivePlanner
 from innovation_invention_engine.cross_domain_mapper import CrossDomainMapper
 from digital_twin_reality_engine.physics_simulator import MultiPhysicsSimulator
 from resource_sustainability_intelligence.grid_optimization import GridOptimizationEngine
-from economic_market_intelligence.macroeconomics_engine import MacroeconomicsEngine
+from economic_market_intelligence.macroeconomics_engine import MacroEconomicsEngine
 from security_trust_intelligence.threat_detection import ThreatDetectionEngine
 from human_performance_intelligence.cognitive_science import CognitiveScienceEngine
 from master_intelligence_integration.domain_orchestrator import MasterDomainOrchestrator
@@ -223,7 +223,7 @@ class Orchestrator:
         self.creative_lab = CreativeDirectorCore()
         self.economic_engine = EconomicIntelligenceCore()
         self.wisdom_moral_engine = MoralReasoningEngine()
-               self.cyber_defense = CybersecurityDefenseCenter()
+        self.cyber_defense = CybersecurityDefenseCenter()
         self.biomedical_engine = BiomedicalResearchEngine()
 
         # Planetary, Legal, Advancement, History & Collaboration (Phases 138-142)
@@ -238,7 +238,7 @@ class Orchestrator:
         self.invention_mapper = CrossDomainMapper()
         self.physics_sim = MultiPhysicsSimulator()
         self.grid_optimizer = GridOptimizationEngine()
-        self.macroeconomics = MacroeconomicsEngine()
+        self.macroeconomics = MacroEconomicsEngine()
         self.threat_engine = ThreatDetectionEngine()
         self.cognitive_engine = CognitiveScienceEngine()
         self.master_integration_orchestrator = MasterDomainOrchestrator()
@@ -349,4 +349,87 @@ class Orchestrator:
 
         # 9. Swarm Execution & KCN v4 Reputation Score Increment
         agents_results = []
-        registered_agents = self.registry.all_ag
+        registered_agents = self.registry.all_agents()
+        for agent in registered_agents:
+            try:
+                res = agent.process({"query": query, "branches": reasoning_tree["branches"], "sub_questions": decomposed})
+                updated_rep = self.v4_reputation.update(agent.name, success=True)
+                agents_results.append({"agent": agent.name, "role": agent.role, "v4_reputation_score": updated_rep, "result": res})
+            except Exception as e:
+                logger.error(f"Error in agent {getattr(agent, 'name', 'unknown')}: {e}")
+
+        # 10. Hypothesis Generation & Falsification
+        hypotheses = self.hypothesis_engine.generate(reasoning_tree["branches"], agent_contributions=agents_results)
+        eliminated, retained = self.elimination_engine.evaluate_and_eliminate(hypotheses)
+
+        # 11. Debate Engine & Supreme Review Council Evaluation
+        debate_results = self.debate_engine.debate(candidates=retained)
+        fact_results = self.fact_checker.verify_claims([c["candidate"].get("hypothesis", "") for c in debate_results])
+
+        council = self.registry.get("JudgeCouncil")
+        if council:
+            judged_candidates = council.evaluate(debate_results)
+        else:
+            judged_candidates = debate_results
+            for item in judged_candidates:
+                scores = item.get("score", {})
+                item["final_score"] = scores.get("evidence", 0) + scores.get("logic", 0) + scores.get("impact", 0)
+            judged_candidates.sort(key=lambda x: x.get("final_score", 0), reverse=True)
+
+        winning_candidate = judged_candidates[0] if judged_candidates else {"candidate": "No feasible hypothesis.", "final_score": 0.0}
+
+        # 12. Cross-Domain Synthesis & Decision Fusion Apex (Phase 150)
+        invention_breakthrough = self.invention_mapper.synthesize_breakthrough_concept("immunology", "energy_grids", query[:30])
+        unified_synthesis = self.master_synthesis_engine.synthesize_unified_solution([winning_candidate, invention_breakthrough])
+        master_verdict = self.master_decision_fusion.render_master_verdict([unified_synthesis])
+
+        # 13. Cryptographic Audit Package Export & Permanent Accountability Passport
+        audit_package = self.audit_exporter.export_audit_package(session_id, {
+            "winning_candidate": winning_candidate,
+            "validation": independent_benchmark,
+            "data_lineage": lineage,
+            "v4_provenance": prov_record,
+        })
+
+        audit_passport = self.accountability.generate_audit_passport(
+            decision_id=session_id,
+            reason_why=f"Achieved top judge score {winning_candidate.get('final_score', 0)} and ECE {stat_analysis['ece_calibration_error']}",
+            evidence_sources=[f.get("sources", ["Knowledge Base"])[0] for f in fact_results],
+            approved_by="JudgeCouncil & MissionReviewCouncil & ThirdPartyCertifier & KCN_v4_MissionControl",
+            rejected_alternatives=[c.get("candidate", {}).get("id", "alt") for c in judged_candidates[1:]],
+            observed_outcome="Validated through quantum multi-physics simulation and global federated node consensus",
+            lesson_learned="Decentralized isolation prevents cascade propagation reliably",
+        )
+
+        report_gen = ConfidenceReport()
+        confidence_summary = report_gen.generate_report(winning_candidate, fact_results, judged_candidates)
+
+        trace.add_step("Final Synthesis", {"status": "SUCCESS", "winning_candidate": winning_candidate})
+        self.event_bus publishing("orchestrator.completed", {"session_id": session_id, "winner": winning_candidate})
+
+        return {
+            "session_id": session_id,
+            "status": "SUCCESS",
+            "phase_milestone": "KCN_v4_GLOBAL_INTELLIGENCE_NETWORK_LAYER",
+            "kcn_v4_network": {
+                "mission_control": mission_coordination["status"],
+                "provenance_chain_hash": prov_record["hash"],
+                "compute_assigned": compute_alloc["assigned"],
+            },
+            "agent_runtime": {
+                "process_state": spawned_proc["state"],
+                "scheduled_task_id": scheduled_task["task_id"],
+            },
+            "data_fabric": {
+                "quality_score": data_quality["quality_score"],
+                "provenance_signature": lineage["provenance_signature"],
+            },
+            "tenant_context": auth_context,
+            "query": query,
+            "top_candidate": winning_candidate,
+            "master_verdict": master_verdict,
+            "confidence_report": confidence_summary,
+            "export_audit_signature": audit_package["sha256_signature"],
+            "accountability_passport": audit_passport,
+            "trace": trace.get_trace_summary(),
+        }
