@@ -1,0 +1,8 @@
+run_started_utc=2026-10-15T12:00:00Z
+runner_commit=9a3d6768b0338203b478afe883ea13c46d7a7578
+baseline_commit=754fb1ff22da0de58ec4db525f137d09a06ae75a
+spec_commit=0fdb465382a0104ed7ae9870b0a5df4325575fbf
+observation_label=harness-validity observation — not a certified baseline value
+host=Linux
+python_version=Python 3.12.0
+git_version=git version 2.40.0

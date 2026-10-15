@@ -1,0 +1,23 @@
+{
+  "capture_type": "PINNED_RUNNER_CAPTURE_001",
+  "environment_class": "sandbox_smoke_test",
+  "environment_class_basis": {
+    "basis_id": "ENVIRONMENT-CLASS-BASIS-001",
+    "detection_rule": "x",
+    "github_actions": false,
+    "runner_os": null,
+    "github_run_id": null,
+    "github_run_attempt": null,
+    "detected_class": "sandbox_smoke_test",
+    "cryptographic_attestation": false
+  },
+  "runner_commit": "9a3d6768b0338203b478afe883ea13c46d7a7578",
+  "baseline_commit": "754fb1ff22da0de58ec4db525f137d09a06ae75a",
+  "spec_commit": "0fdb465382a0104ed7ae9870b0a5df4325575fbf",
+  "observation_label": "harness-validity observation — not a certified baseline value",
+  "runner_checkout_head": "9a3d6768b0338203b478afe883ea13c46d7a7578",
+  "runner_script_blob": "bacacb4252911486c252bd87e34a4976b75eb4db",
+  "runner_exit_code": 0,
+  "independent_verification": "NOT_MEASURED",
+  "baseline_qualification": "NOT_MEASURED"
+}
