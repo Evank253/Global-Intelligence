@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import urllib.parse
 import urllib.request
 
@@ -63,7 +62,7 @@ def main() -> int:
             options={"require": ["iss", "aud", "exp", "iat", "nbf", "sub"]},
         )
     except Exception as exc:
-        fail(f"token retrieval or cryptographic validation failed ({type(exc).__name__})")
+        fail(f"token retrieval or cryptographic validation failed ({type(exc).__name__}: {exc})")
 
     expected = {
         "repository": EXPECTED_REPOSITORY,
@@ -91,6 +90,8 @@ def main() -> int:
         "run_attempt": str(claims["run_attempt"]),
         "sha": claims["sha"],
         "runner_environment": claims.get("runner_environment"),
+        # Note: `cryptographic_attestation` refers to artifact signing/attestation,
+        # not the JWT token signature verification performed above.
         "cryptographic_attestation": False,
     }
     print(json.dumps(basis, sort_keys=True, separators=(",", ":")))
