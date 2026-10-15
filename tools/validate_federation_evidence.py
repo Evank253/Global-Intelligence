@@ -80,6 +80,20 @@ def validate_inventory(root: Path, required_names: list[str]) -> int:
         require(actual_digest == expected_digest,
                 f"SHA-256 mismatch for {raw_name!r}: expected {expected_digest}, got {actual_digest}")
 
+    # Inventory completeness: every regular file present at validation time must be listed.
+    # The inventory cannot hash itself. Validator stdout/stderr are written outside this
+    # directory until validation finishes, then moved in and included in the final inventory.
+    actual_files: set[str] = set()
+    for candidate in root.rglob("*"):
+        if candidate.is_symlink():
+            raise ValidationError(f"symlinks are forbidden in evidence directory: {candidate.relative_to(root).as_posix()}")
+        if candidate.is_file() and candidate != inventory_path:
+            actual_files.add(candidate.relative_to(root).as_posix())
+    unlisted = sorted(actual_files - seen)
+    missing = sorted(seen - actual_files)
+    require(not unlisted, f"unlisted evidence files: {unlisted}")
+    require(not missing, f"inventory entries absent from evidence directory: {missing}")
+
     for name in required_names:
         require(name in seen, f"artifact missing from hash inventory: {name}")
     return len(seen)
