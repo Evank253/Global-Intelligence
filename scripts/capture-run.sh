@@ -8,9 +8,9 @@ readonly RUNNER_COMMIT="9a3d6768b0338203b478afe883ea13c46d7a7578"
 readonly BASELINE_COMMIT="754fb1ff22da0de58ec4db525f137d09a06ae75a"
 readonly SPEC_COMMIT="0fdb465382a0104ed7ae9870b0a5df4325575fbf"
 readonly RUNNER_BLOB="bacacb4252911486c252bd87e34a4976b75eb4db"
-readonly SANDBOX_LABEL="harness-validity observation — not a certified baseline value"
+readonly OBSERVATION_LABEL="harness-validity observation — not a certified baseline value"
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-readonly REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null || cd "$SCRIPT_DIR/.." && pwd)"
+readonly REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null)"
 readonly VALIDATOR="$REPO_ROOT/tools/validate_federation_evidence.py"
 
 if ! command -v git >/dev/null 2>&1; then echo "BLOCKED: git is required" >&2; exit 20; fi
@@ -34,7 +34,7 @@ trap cleanup EXIT
   printf 'runner_commit=%s\n' "$RUNNER_COMMIT"
   printf 'baseline_commit=%s\n' "$BASELINE_COMMIT"
   printf 'spec_commit=%s\n' "$SPEC_COMMIT"
-  printf 'sandbox_label=%s\n' "$SANDBOX_LABEL"
+  printf 'observation_label=%s\n' "$OBSERVATION_LABEL"
   printf 'host=%s\n' "$(uname -a)"
   printf 'python_version=%s\n' "$(python3 --version 2>&1)"
   printf 'git_version=%s\n' "$(git --version)"
@@ -95,7 +95,7 @@ RUNNER_RC=$?
 set -e
 printf '%s\n' "$RUNNER_RC" > "$OUT/runner.exit-code.txt"
 
-python3 - "$OUT/capture-metadata.json" "$RUNNER_COMMIT" "$BASELINE_COMMIT" "$SPEC_COMMIT" "$SANDBOX_LABEL" "$ACTUAL_HEAD" "$ACTUAL_RUNNER_BLOB" "$RUNNER_RC" <<'PY'
+python3 - "$OUT/capture-metadata.json" "$RUNNER_COMMIT" "$BASELINE_COMMIT" "$SPEC_COMMIT" "$OBSERVATION_LABEL" "$ACTUAL_HEAD" "$ACTUAL_RUNNER_BLOB" "$RUNNER_RC" <<'PY'
 import json, os, sys
 path, runner, baseline, spec, label, head, blob, rc = sys.argv[1:]
 payload = {
@@ -103,7 +103,7 @@ payload = {
     "runner_commit": runner,
     "baseline_commit": baseline,
     "spec_commit": spec,
-    "sandbox_label": label,
+    "observation_label": label,
     "runner_checkout_head": head,
     "runner_script_blob": blob,
     "runner_exit_code": int(rc),
