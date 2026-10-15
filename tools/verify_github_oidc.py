@@ -36,6 +36,10 @@ def main() -> int:
         fail("GitHub Actions OIDC request environment is unavailable")
 
     parsed = urllib.parse.urlsplit(request_url)
+    # DEBUG: print parsed components before the gate so a failure names the
+    # actual endpoint instead of a generic message. Redact nothing sensitive
+    # here - this is a public hostname/scheme pair.
+    print(f"OIDC_DEBUG: scheme={parsed.scheme!r} hostname={parsed.hostname!r} netloc={parsed.netloc!r}", file=sys.stderr)
     # GitHub has used both hostnames for the OIDC token request endpoint across
     # runner versions; accept either. The security property is https + this host
     # family + a bearer-authorized request to the actions-controlled endpoint.
