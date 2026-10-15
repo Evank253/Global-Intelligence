@@ -43,6 +43,48 @@ def require(condition: bool, message: str) -> None:
         raise ValidationError(message)
 
 
+def validate_inventory(root: Path, required_names: list[str]) -> int:
+    """Recompute SHA-256 for every listed artifact and reject unsafe/ambiguous paths."""
+    root = root.resolve(strict=True)
+    inventory_path = root / "inventory.sha256"
+    require(inventory_path.is_file(), "inventory.sha256 is missing")
+    inventory_lines = inventory_path.read_text(encoding="utf-8").splitlines()
+    require(bool(inventory_lines), "inventory.sha256 is empty")
+
+    seen: set[str] = set()
+    for line in inventory_lines:
+        match = re.fullmatch(r"([0-9a-f]{64})  (.+)", line)
+        require(match is not None, f"malformed inventory line: {line!r}")
+        expected_digest, raw_name = match.groups()
+        name = raw_name.removeprefix("./")
+        relative = Path(name)
+        require(name.strip() == name and bool(name), f"invalid inventory path: {raw_name!r}")
+        require(not relative.is_absolute(), f"absolute inventory path is forbidden: {raw_name!r}")
+        require(".." not in relative.parts, f"path traversal is forbidden: {raw_name!r}")
+        require(name not in {".", "inventory.sha256"}, 
+                f"inventory cannot hash itself or the evidence root: {raw_name!r}")
+        normalized = relative.as_posix()
+        require(normalized not in seen, f"duplicate inventory path: {raw_name!r}")
+        seen.add(normalized)
+
+        candidate = root / relative
+        require(not candidate.is_symlink(), f"symlink inventory entries are forbidden: {raw_name!r}")
+        try:
+            resolved = candidate.resolve(strict=True)
+        except (OSError, RuntimeError):
+            raise ValidationError(f"inventory artifact is missing or unresolvable: {raw_name!r}")
+        require(resolved.is_relative_to(root),
+                f"inventory path escapes evidence directory: {raw_name!r}")
+        require(resolved.is_file(), f"inventory artifact is not a regular file: {raw_name!r}")
+        actual_digest = hashlib.sha256(resolved.read_bytes()).hexdigest()
+        require(actual_digest == expected_digest,
+                f"SHA-256 mismatch for {raw_name!r}: expected {expected_digest}, got {actual_digest}")
+
+    for name in required_names:
+        require(name in seen, f"artifact missing from hash inventory: {name}")
+    return len(seen)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("evidence_dir", type=Path)
@@ -166,20 +208,17 @@ def main() -> int:
     require(report.get("execution_mode_counts") == expected_modes,
             "top-level execution-mode counts do not match result rows")
 
-    inventory_lines = (root / "inventory.sha256").read_text(encoding="utf-8").splitlines()
-    require(bool(inventory_lines), "inventory.sha256 is empty")
-    for line in inventory_lines:
-        require(re.fullmatch(r"[0-9a-f]{64}  .+", line) is not None,
-                f"malformed inventory line: {line!r}")
-    inventory_names = {line.split("  ", 1)[1].removeprefix("./") for line in inventory_lines}
-    for name in [json_reports[0].name, md_reports[0].name, *required_capture[:-1]]:
-        require(name in inventory_names, f"artifact missing from hash inventory: {name}")
+    inventory_count = validate_inventory(
+        root,
+        [json_reports[0].name, md_reports[0].name, *required_capture[:-1]],
+    )
 
     print(json.dumps({
         "validation": "PASS",
         "meaning": "capture package structure and pin consistency validated; not federation qualification",
         "run_id": report.get("run_id"),
         "track_a_rows": len(results),
+        "inventory_entries_rehashed": inventory_count,
         "status_counts": expected_counts,
         "execution_mode_counts": expected_modes,
         "environment_class": environment_class,

@@ -1,0 +1,31 @@
+name: FED-009 inventory hash regression tests
+
+on:
+  push:
+    branches:
+      - fix/fed-009-recompute-inventory-hashes
+    paths:
+      - "tools/validate_federation_evidence.py"
+      - "tests/test_validate_federation_inventory.py"
+      - ".github/workflows/fed-009-inventory-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  inventory-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/fed-009-recompute-inventory-hashes
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile validator
+        run: python -m py_compile tools/validate_federation_evidence.py
+      - name: Run inventory regression tests
+        run: python -m unittest discover -s tests -p 'test_validate_federation_inventory.py' -v
