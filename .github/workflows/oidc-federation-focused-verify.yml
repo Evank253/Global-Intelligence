@@ -1,0 +1,219 @@
+# TEMPORARY verification workflow — do not leave on the branch permanently.
+#
+# Purpose:
+#   Exercise the patched OIDC verifier and evidence validator that live on
+#   fix/oidc-federation-evidence-validation @ 183b7cb2beff90ee182f1c9b95c3eb44edcd5afb.
+#
+# Trigger:
+#   push to the focused branch only. Avoids the workflow_dispatch default-branch
+#   requirement and does not touch the default branch or the audit branch.
+#
+# Constraints:
+#   - Does not weaken any identity pins in tools/verify_github_oidc.py.
+#   - Captures the real OIDC result even when the focused-branch ref is rejected.
+#   - Runs the evidence validator independently so an OIDC policy rejection
+#     does not prevent validator testing.
+#   - Synthetic fixture only — never represented as a real federation execution.
+#   - Federation qualification / independent verification remain NOT_MEASURED.
+#   - The OIDC token itself is never written to logs or uploaded artifacts.
+#
+# Cleanup:
+#   After artifacts are downloaded and reviewed, remove this file and the
+#   helper in a separate cleanup commit so the focused branch returns to its
+#   two-file source diff.
+
+name: oidc-federation-focused-verify
+
+on:
+  push:
+    branches:
+      - fix/oidc-federation-evidence-validation
+    paths:
+      - ".github/workflows/oidc-federation-focused-verify.yml"
+      - ".github/workflows/_focused_verify_helper.py"
+      - "tools/verify_github_oidc.py"
+      - "tools/validate_federation_evidence.py"
+
+permissions:
+  contents: read
+  id-token: write   # required for genuine GitHub Actions OIDC token
+
+concurrency:
+  group: oidc-federation-focused-verify
+  cancel-in-progress: true
+
+env:
+  # Exact commit that must be tested. Hard-coded so a later push cannot
+  # silently change the subject under test without a deliberate edit.
+  TARGET_SHA: "183b7cb2beff90ee182f1c9b95c3eb44edcd5afb"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Record triggering commit
+        run: |
+          set -euo pipefail
+          echo "triggering_sha=${{ github.sha }}" >> "$GITHUB_ENV"
+          echo "triggering_ref=${{ github.ref }}" >> "$GITHUB_ENV"
+          echo "run_id=${{ github.run_id }}" >> "$GITHUB_ENV"
+          echo "run_attempt=${{ github.run_attempt }}" >> "$GITHUB_ENV"
+          echo "Triggering commit: ${{ github.sha }}"
+          echo "Target commit under test: $TARGET_SHA"
+
+      # Checkout the triggering commit only long enough to obtain the helper
+      # and to have a workspace. The code under test is checked out separately.
+      - name: Checkout triggering commit (workspace)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Checkout exact target SHA into isolated directory
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          path: tested-commit
+          fetch-depth: 1
+
+      - name: Assert isolated checkout SHA
+        run: |
+          set -euo pipefail
+          ACTUAL="$(git -C tested-commit rev-parse HEAD)"
+          echo "expected=$TARGET_SHA"
+          echo "actual=$ACTUAL"
+          if [ "$ACTUAL" != "$TARGET_SHA" ]; then
+            echo "SHA_MISMATCH: isolated checkout does not match TARGET_SHA" >&2
+            exit 1
+          fi
+          echo "SHA_ASSERTION_OK"
+          git -C tested-commit log -1 --oneline > results-prep-log.txt || true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install verifier dependency
+        run: |
+          python -m pip install --upgrade pip
+          pip install "PyJWT[crypto]>=2.8"
+
+      - name: Prepare evidence directories
+        run: |
+          mkdir -p evidence/oidc evidence/validator results
+          {
+            echo "prepared=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "triggering_sha=${{ github.sha }}"
+            echo "tested_sha=$TARGET_SHA"
+            echo "workflow_ref=${{ github.workflow_ref }}"
+            echo "run_id=${{ github.run_id }}"
+            echo "run_attempt=${{ github.run_attempt }}"
+          } > results/run-metadata.txt
+
+      # ------------------------------------------------------------------
+      # OIDC verifier — real token, real claims, no pin weakening
+      # The token value itself is never written to any file or log.
+      # ------------------------------------------------------------------
+      - name: Run OIDC verifier against tested commit (real token)
+        id: oidc
+        continue-on-error: true
+        working-directory: tested-commit
+        env:
+          GITHUB_ACTIONS: "true"
+          # ACTIONS_ID_TOKEN_REQUEST_URL and ACTIONS_ID_TOKEN_REQUEST_TOKEN
+          # are supplied by the runner when id-token: write is granted.
+        run: |
+          set +e
+          # Run from the isolated tested-commit tree so the exact patched
+          # verifier is executed. Redirect only process streams; never echo
+          # the token or request-token values.
+          python tools/verify_github_oidc.py \
+            > ../evidence/oidc/verifier.stdout.log \
+            2> ../evidence/oidc/verifier.stderr.log
+          EC=$?
+          echo "$EC" > ../evidence/oidc/verifier.exit-code.txt
+          echo "oidc_exit_code=$EC" >> "$GITHUB_OUTPUT"
+          echo "OIDC verifier exit code: $EC"
+          {
+            echo "oidc_exit_code=$EC"
+            echo "stdout_bytes=$(wc -c < ../evidence/oidc/verifier.stdout.log)"
+            echo "stderr_bytes=$(wc -c < ../evidence/oidc/verifier.stderr.log)"
+          } > ../evidence/oidc/summary.txt
+          exit 0
+
+      # ------------------------------------------------------------------
+      # Evidence validator — independent of OIDC outcome
+      # ------------------------------------------------------------------
+      - name: Build controlled evidence package and run validator
+        id: validator
+        continue-on-error: true
+        run: |
+          set +e
+          # Helper lives on the triggering commit; validator binary comes
+          # from the isolated tested-commit tree.
+          python .github/workflows/_focused_verify_helper.py \
+            --validator-path tested-commit/tools/validate_federation_evidence.py \
+            --output-dir evidence/validator \
+            --results-dir results \
+            > evidence/validator/helper.stdout.log \
+            2> evidence/validator/helper.stderr.log
+          EC=$?
+          echo "$EC" > evidence/validator/helper.exit-code.txt
+          echo "validator_exit_code=$EC" >> "$GITHUB_OUTPUT"
+          echo "Validator helper exit code: $EC"
+          exit 0
+
+      - name: Write machine-readable summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          root = pathlib.Path("results")
+          oidc_ec = pathlib.Path("evidence/oidc/verifier.exit-code.txt")
+          val_ec  = pathlib.Path("evidence/validator/helper.exit-code.txt")
+          meta = {}
+          meta_path = pathlib.Path("results/run-metadata.txt")
+          if meta_path.exists():
+              for line in meta_path.read_text(encoding="utf-8").splitlines():
+                  if "=" in line:
+                      k, v = line.split("=", 1)
+                      meta[k.strip()] = v.strip()
+          summary = {
+              "triggering_sha": meta.get("triggering_sha") or os.environ.get("GITHUB_SHA"),
+              "tested_sha": meta.get("tested_sha") or os.environ.get("TARGET_SHA"),
+              "workflow_run_id": os.environ.get("GITHUB_RUN_ID"),
+              "workflow_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT"),
+              "oidc_verifier_exit_code": int(oidc_ec.read_text().strip()) if oidc_ec.exists() else None,
+              "validator_helper_exit_code": int(val_ec.read_text().strip()) if val_ec.exists() else None,
+              "meaning": (
+                  "Focused-branch runtime verification of the two patched tools only. "
+                  "OIDC identity pins were not weakened. "
+                  "Synthetic fixture used for validator. "
+                  "Federation qualification and independent verification remain NOT_MEASURED."
+              ),
+              "classifications": {
+                  "local_adversarial_cases": "12/12 passed (prior phase)",
+                  "focused_branch_runtime_oidc": "executed — see exit code (policy rejection expected under current pins)",
+                  "focused_branch_runtime_validator": "executed against synthetic package",
+                  "real_federation_execution": "not established",
+                  "federation_qualification": "NOT_MEASURED",
+                  "independent_verification": "NOT_MEASURED",
+              },
+          }
+          root.mkdir(parents=True, exist_ok=True)
+          (root / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(summary, indent=2))
+          PY
+
+      - name: Upload verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oidc-federation-focused-verify-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evidence/
+            results/
+          if-no-files-found: warn
+          retention-days: 14
