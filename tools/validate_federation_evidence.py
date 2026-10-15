@@ -166,14 +166,45 @@ def main() -> int:
     require(report.get("execution_mode_counts") == expected_modes,
             "top-level execution-mode counts do not match result rows")
 
+    # SCOPE: validate the captured evidence package's declared inventory, required
+    # capture artifacts, and content digests. This is package-integrity checking only;
+    # it does not certify federation behavior, independent verification, or qualification.
     inventory_lines = (root / "inventory.sha256").read_text(encoding="utf-8").splitlines()
     require(bool(inventory_lines), "inventory.sha256 is empty")
+    inventory_names = set()
+    inventory_entries = []
     for line in inventory_lines:
         require(re.fullmatch(r"[0-9a-f]{64}  .+", line) is not None,
                 f"malformed inventory line: {line!r}")
-    inventory_names = {line.split("  ", 1)[1].removeprefix("./") for line in inventory_lines}
+        expected_digest, raw_name = line.split("  ", 1)
+        name = raw_name.removeprefix("./")
+        relative = Path(name)
+        require(name and not relative.is_absolute() and ".." not in relative.parts,
+                f"unsafe inventory path: {raw_name!r}")
+        normalized_name = relative.as_posix()
+        require(normalized_name not in inventory_names,
+                f"duplicate inventory path: {normalized_name}")
+        inventory_names.add(normalized_name)
+        inventory_entries.append((normalized_name, expected_digest))
+
     for name in [json_reports[0].name, md_reports[0].name, *required_capture[:-1]]:
         require(name in inventory_names, f"artifact missing from hash inventory: {name}")
+
+    # Validator logs can be written while validation is running, so their digests
+    # are intentionally exempt. Every other inventory entry must exist and match.
+    validator_log_exemptions = {"validator.stdout.log", "validator.stderr.log"}
+    for name, expected_digest in inventory_entries:
+        path = (root / name).resolve()
+        try:
+            path.relative_to(root)
+        except ValueError:
+            raise ValidationError(f"inventory path escapes evidence directory: {name}")
+        require(path.is_file(), f"inventoried artifact missing: {name}")
+        if name in validator_log_exemptions:
+            continue
+        actual_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        require(actual_digest == expected_digest,
+                f"inventory digest mismatch for {name}: expected {expected_digest}, got {actual_digest}")
 
     print(json.dumps({
         "validation": "PASS",
