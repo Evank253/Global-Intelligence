@@ -140,8 +140,8 @@ def main() -> int:
         require(entry.get("status") == "PASS", f"source blob check not PASS: {path}")
 
     spec = report.get("specification", {})
-    require(spec.get("commit_sha") == SPEC_COMMIT, "specification commit pin mismatch in report")
-    require(spec.get("matrix_git_blob_sha") == MATRIX_BLOB, "matrix blob pin mismatch in report")
+    require(spec.get("commit_sha") == SPEC_COMMIT, "specification commit pin mismatch")
+    require(spec.get("matrix_git_blob_sha") == MATRIX_BLOB, "matrix blob pin mismatch")
     require(spec.get("matrix_tests_loaded") == 32, "runner did not load exactly 32 frozen matrix tests")
 
     results = report.get("results")
@@ -168,10 +168,49 @@ def main() -> int:
 
     inventory_lines = (root / "inventory.sha256").read_text(encoding="utf-8").splitlines()
     require(bool(inventory_lines), "inventory.sha256 is empty")
+
+    # Recompute every recorded digest. A listing that is never checked is not a
+    # seal: without this, a modified report passes as long as its filename still
+    # appears in the inventory.
+    #
+    # SCOPE - what this does and does not defeat:
+    #   caught:      edit a file and leave the inventory stale
+    #   caught:      delete a file that the inventory lists
+    #   NOT caught:  edit a file AND recompute the inventory to match
+    #   NOT caught:  add a file the inventory never listed
+    # Recomputation makes the package tamper-EVIDENT, not tamper-PROOF. The
+    # "edit and recompute" case needs an anchor outside this directory -
+    # artifact signing or an out-of-band notary - which is a separate control
+    # and is NOT provided here.
+    #
+    # The validator's own stdout/stderr logs are exempt because the act of
+    # validating rewrites them; checking them would make every repeat
+    # (auditor) validation fail spuriously.
+    EXEMPT_FROM_DIGEST_CHECK = {"validator.stdout.log", "validator.stderr.log"}
+    digest_failures: list[str] = []
+    inventory_names: set[str] = set()
     for line in inventory_lines:
         require(re.fullmatch(r"[0-9a-f]{64}  .+", line) is not None,
                 f"malformed inventory line: {line!r}")
-    inventory_names = {line.split("  ", 1)[1].removeprefix("./") for line in inventory_lines}
+        recorded, name = line.split("  ", 1)
+        name = name.removeprefix("./")
+        inventory_names.add(name)
+        if name in EXEMPT_FROM_DIGEST_CHECK:
+            continue
+        candidate = root / name
+        if not candidate.is_file():
+            digest_failures.append(f"{name}: listed in inventory but missing on disk")
+            continue
+        actual = hashlib.sha256(candidate.read_bytes()).hexdigest()
+        if actual != recorded:
+            digest_failures.append(
+                f"{name}: digest mismatch (recorded {recorded[:12]}..., actual {actual[:12]}...)"
+            )
+    require(
+        not digest_failures,
+        "evidence digest verification failed: " + "; ".join(digest_failures),
+    )
+
     for name in [json_reports[0].name, md_reports[0].name, *required_capture[:-1]]:
         require(name in inventory_names, f"artifact missing from hash inventory: {name}")
 
