@@ -6,17 +6,28 @@ test results export, and system server booting.
 """
 
 import os
+import shlex
 import sys
 import argparse
 import subprocess
 
 
-def run_cmd(cmd: str, check: bool = True):
-    print(f"Executing: {cmd}")
-    res = subprocess.run(cmd, shell=True)
+def run_cmd(cmd, check: bool = True):
+    """Run a command without invoking a shell.
+
+    Accepts either a single string (tokenized with shlex) or a pre-built argv list.
+    shell=True is avoided: it exposes the process to shell metacharacter injection
+    if any argument ever contains spaces or special characters.
+    """
+    if isinstance(cmd, str):
+    argv = shlex.split(cmd)
+    else:
+    argv = list(cmd)
+    print(f"Executing: {argv}")
+    res = subprocess.run(argv)
     if check and res.returncode != 0:
-        print(f"Error: Command failed with exit code {res.returncode}")
-        sys.exit(res.returncode)
+    print(f"Error: Command failed with exit code {res.returncode}")
+    sys.exit(res.returncode)
 
 
 def main():
@@ -30,17 +41,17 @@ def main():
     print("================================================================================")
 
     if args.mode in ["full", "clean-only"]:
-        print("\n[Step 1] Running Kronos Vibe Coder Code Cleanup & SAST Audit...")
-        run_cmd(f"{sys.executable} run_kronos_vibe_coder_cleanup.py")
+    print("\n[Step 1] Running Kronos Vibe Coder Code Cleanup & SAST Audit...")
+    run_cmd([sys.executable, "run_kronos_vibe_coder_cleanup.py"])
 
     if args.mode in ["full", "test-only"]:
-        print("\n[Step 2] Executing 145-Suite Pytest Matrix & Exporting Test Results...")
-        run_cmd(f"{sys.executable} run_all_tests_and_generate_reports.py")
+    print("\n[Step 2] Executing 145-Suite Pytest Matrix & Exporting Test Results...")
+    run_cmd([sys.executable, "run_all_tests_and_generate_reports.py"])
 
     if args.mode in ["full", "server-only"]:
-        print(f"\n[Step 3] Booting FastAPI Enterprise Command Center on http://0.0.0.0:{args.port}...")
-        run_cmd(f"{sys.executable} -m uvicorn api.server:app --host 0.0.0.0 --port {args.port}")
+    print(f"\n[Step 3] Booting FastAPI Enterprise Command Center on http://0.0.0.0:{args.port}...")
+    run_cmd([sys.executable, "-m", "uvicorn", "api.server:app", "--host", "0.0.0.0", "--port", str(args.port)])
 
 
-if __name__ == "__main__":
+if __name__ == "__main__:
     main()
