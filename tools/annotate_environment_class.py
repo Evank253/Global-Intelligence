@@ -42,6 +42,18 @@ def main() -> int:
     report = json.loads(path.read_text(encoding="utf-8"))
     report["environment_class"] = environment_class
     report["baseline_qualification"] = "NOT_MEASURED"
+    # Preserve the classification basis as evidence; these signals corroborate
+    # runtime context but are not cryptographic attestation.
+    report["environment_class_basis"] = {
+        "basis_id": "ENVIRONMENT-CLASS-BASIS-001",
+        "detection_rule": "github_actions_true_and_runner_os_and_run_id_present",
+        "github_actions": os.environ.get("GITHUB_ACTIONS") == "true",
+        "runner_os": os.environ.get("RUNNER_OS") or None,
+        "github_run_id": os.environ.get("GITHUB_RUN_ID") or None,
+        "github_run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT") or None,
+        "detected_class": detected,
+        "cryptographic_attestation": False,
+    }
     report["capture_annotation"] = {
         "field_added_by": "tools/annotate_environment_class.py",
         "pinned_runner_modified": False,
