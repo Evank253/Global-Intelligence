@@ -46,13 +46,13 @@ class InventoryDigestTests(unittest.TestCase):
             VALIDATOR.validate_inventory(self.root, ["missing.bin"])
 
     def test_unlisted_file_fails(self):
-        (self.root / "inventory.sha256").write_text(self.entry() + "\\n", encoding="utf-8")
+        (self.root / "inventory.sha256").write_text(self.entry() + "\n", encoding="utf-8")
         (self.root / "unexpected.log").write_text("not inventoried", encoding="utf-8")
         with self.assertRaisesRegex(VALIDATOR.ValidationError, "unlisted evidence files"):
             VALIDATOR.validate_inventory(self.root, ["report.json"])
 
     def test_nested_unlisted_file_fails(self):
-        (self.root / "inventory.sha256").write_text(self.entry() + "\\n", encoding="utf-8")
+        (self.root / "inventory.sha256").write_text(self.entry() + "\n", encoding="utf-8")
         nested = self.root / "subdir"
         nested.mkdir()
         (nested / "extra.bin").write_bytes(b"unlisted")
@@ -60,7 +60,7 @@ class InventoryDigestTests(unittest.TestCase):
             VALIDATOR.validate_inventory(self.root, ["report.json"])
 
     def test_symlink_in_evidence_directory_fails(self):
-        (self.root / "inventory.sha256").write_text(self.entry() + "\\n", encoding="utf-8")
+        (self.root / "inventory.sha256").write_text(self.entry() + "\n", encoding="utf-8")
         target = self.root / "report.json"
         link = self.root / "linked-report.json"
         try:
