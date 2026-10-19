@@ -33,67 +33,60 @@ jobs:
           python-version: "3.12"
 
       - name: Install OIDC verifier dependency
-        run: python -m pip install "PyJWT[crypto]>=2.8,<3"
+        run: python -m pip install "PyJWT>=2.8,<3"
 
       - name: Verify GitHub Actions OIDC identity
         shell: bash
         run: |
           set -euo pipefail
-+          # Separate stdout/stderr so the JSON basis is never polluted by
-+          # verifier diagnostics. Write the JSON basis to stdout-only file and
-+          # diagnostics to a separate error file.
-+          set +e
-+          python tools/verify_github_oidc.py \
-+            > "$RUNNER_TEMP/oidc-basis.json" 2> "$RUNNER_TEMP/oidc-error.txt"
-+          rc=$?
-+          set -e
-+          # Preserve diagnostics on stderr for visibility, but don't fail the
-+          # redirection operations if the error file is empty or missing.
-+          cat "$RUNNER_TEMP/oidc-error.txt" >&2 || true
-+          if [ "$rc" -ne 0 ]; then
-+            echo "verify_github_oidc.py exited with $rc" >&2
-+            exit "$rc"
-+          fi
-+          # Emit the verified basis to the job stdout so subsequent steps can
-+          # capture it and also persist its path into the environment.
-+          cat "$RUNNER_TEMP/oidc-basis.json"
-+          echo "MANIFEX_OIDC_BASIS_FILE=$RUNNER_TEMP/oidc-basis.json" >> "$GITHUB_ENV"
+          # Separate stdout/stderr so the JSON basis is never polluted by
+          # verifier diagnostics. Write the JSON basis to stdout-only file and
+          # diagnostics to a separate error file.
+          set +e
+          python tools/verify_github_oidc.py \
+            > "$RUNNER_TEMP/oidc-basis.json" 2> "$RUNNER_TEMP/oidc-error.txt"
+          rc=$?
+          set -e
+          # Preserve diagnostics on stderr for visibility, but don't fail the
+          # redirection operations if the error file is empty or missing.
+          cat "$RUNNER_TEMP/oidc-error.txt" >&2 || true
+          if [ "$rc" -ne 0 ]; then
+            echo "verify_github_oidc.py exited with $rc" >&2
+            exit "$rc"
+          fi
+          # Emit the verified basis to the job stdout so subsequent steps can
+          # capture it and also persist its path into the environment.
+          cat "$RUNNER_TEMP/oidc-basis.json"
+          echo "MANIFEX_OIDC_BASIS_FILE=$RUNNER_TEMP/oidc-basis.json" >> "$GITHUB_ENV"
 
       - name: Save OIDC basis to evidence (always)
         if: always()
         shell: bash
         run: |
           set -euo pipefail
--          if [ -f "$RUNNER_TEMP/oidc-basis.json" ]; then
--            mkdir -p evidence/oidc
--            cp "$RUNNER_TEMP/oidc-basis.json" evidence/oidc/oidc-basis.json
--            echo "Saved OIDC verifier output to evidence/oidc/oidc-basis.json"
--          else
--            echo "No OIDC basis file was created."
--          fi
-+          mkdir -p evidence/oidc
-+          saved=0
-+          # -s: non-empty file only; an empty JSON file is not evidence.
-+          if [ -s "$RUNNER_TEMP/oidc-basis.json" ]; then
-+            cp "$RUNNER_TEMP/oidc-basis.json" evidence/oidc/oidc-basis.json
-+            echo "Saved OIDC basis to evidence/oidc/oidc-basis.json"
-+            saved=1
-+          fi
-+          if [ -s "$RUNNER_TEMP/oidc-error.txt" ]; then
-+            cp "$RUNNER_TEMP/oidc-error.txt" evidence/oidc/oidc-error.txt
-+            echo "Saved OIDC failure reason to evidence/oidc/oidc-error.txt"
-+            saved=1
-+          fi
-+          if [ "$saved" -eq 0 ]; then
-+            echo "No OIDC basis or error file was produced."
-+          fi
+          mkdir -p evidence/oidc
+          saved=0
+          # -s: non-empty file only; an empty JSON file is not evidence.
+          if [ -s "$RUNNER_TEMP/oidc-basis.json" ]; then
+            cp "$RUNNER_TEMP/oidc-basis.json" evidence/oidc/oidc-basis.json
+            echo "Saved OIDC basis to evidence/oidc/oidc-basis.json"
+            saved=1
+          fi
+          if [ -s "$RUNNER_TEMP/oidc-error.txt" ]; then
+            cp "$RUNNER_TEMP/oidc-error.txt" evidence/oidc/oidc-error.txt
+            echo "Saved OIDC failure reason to evidence/oidc/oidc-error.txt"
+            saved=1
+          fi
+          if [ "$saved" -eq 0 ]; then
+            echo "No OIDC basis or error file was produced."
+          fi
 
       - name: Record GitHub Actions environment
         run: |
           echo "MANIFEX_ENVIRONMENT_CLASS=github_hosted_ci" >> "$GITHUB_ENV"
           echo "github_runner_os=$RUNNER_OS"
           echo "github_run_id=$GITHUB_RUN_ID"
-          echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
+          echo "github_run_attempt=$RUNNER_ATTEMPT"
           git rev-parse HEAD
           python --version
           git --version
